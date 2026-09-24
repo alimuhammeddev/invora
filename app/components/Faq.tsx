@@ -67,13 +67,17 @@ export default function FAQ() {
       <div className="relative mx-auto grid max-w-7xl gap-12 px-6 py-24 lg:grid-cols-[1fr_1.05fr] lg:gap-16 lg:px-8 lg:py-32">
         {/* Left: heading + question list */}
         <div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-1.5 text-sm font-semibold text-blue-600">
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+            Frequently Asked Questions
+          </span>
           <h2
             id="faq-heading"
-            className="text-4xl font-semibold leading-[1.08] tracking-[-0.035em] text-slate-950 sm:text-5xl"
+            className="text-2xl mt-6 font-semibold leading-[1.08] tracking-[-0.035em] text-slate-950 md:text-4xl"
           >
             Questions, <span className="text-blue-600">answered</span>
           </h2>
-          <p className="mt-5 max-w-md text-lg leading-8 text-slate-600">
+          <p className="mt-5 max-w-md md:text-lg text-base leading-8 text-slate-600">
             Everything you need to know before you send your first invoice.
           </p>
 
@@ -201,4 +205,4 @@ export default function FAQ() {
       </div>
     </section>
   );
-};
+}

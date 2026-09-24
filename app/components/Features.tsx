@@ -74,44 +74,65 @@ const features: { icon: ReactNode; title: string; description: string }[] = [
 export default function Features() {
   return (
     <section
+      id="features"
       aria-labelledby="features-heading"
-      className="relative overflow-hidden border-t border-slate-100 bg-white"
+      className="border-t border-slate-100 bg-white"
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-0 -z-10 h-90 w-180 -translate-x-1/2 rounded-full bg-blue-100/40 blur-3xl"
-      />
-
       <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-32">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2
-            id="features-heading"
-            className="text-4xl font-semibold leading-[1.08] tracking-[-0.035em] text-slate-950 sm:text-5xl"
-          >
-            Everything you need to{" "}
-            <span className="text-blue-600">get paid</span>
-          </h2>
-          <p className="mt-5 text-lg leading-8 text-slate-600">
+        {/* Header: heading on the left, intro on the right */}
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-1.5 text-sm font-semibold text-blue-600">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+              Features
+            </span>
+
+            <h2
+              id="features-heading"
+              className="mt-6 text-2xl font-semibold leading-[1.08] tracking-[-0.035em] text-slate-950 md:text-4xl"
+            >
+              Everything you need to {" "}
+              <span className="text-blue-600">get paid</span>
+            </h2>
+          </div>
+
+          <p className="max-w-md md:text-lg text-base leading-8 text-slate-600">
             From the first draft to the final payment, every step of invoicing
             is handled in one place.
           </p>
         </div>
 
-        <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((feature) => (
+        <div className="mt-16 border-t border-slate-200 lg:mt-20">
+          {features.map((feature, i) => (
             <article
               key={feature.title}
-              className="group relative overflow-hidden rounded-3xl bg-white p-7 ring-1 ring-slate-200 transition duration-300 hover:-translate-y-1 hover:ring-blue-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              className="group relative overflow-hidden border-b border-slate-200"
             >
-              <div className="relative">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-100 transition-colors duration-300 group-hover:bg-blue-600 group-hover:text-white group-hover:ring-blue-600 motion-reduce:transition-none">
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 origin-bottom scale-y-0 bg-blue-600 transition-transform duration-500 ease-out group-hover:scale-y-100 motion-reduce:transition-none"
+              />
+
+              <div className="relative grid grid-cols-2 items-center gap-x-10 gap-y-5 px-2 py-9 sm:px-8 lg:grid-cols-[7rem_1.1fr_1fr_auto] lg:py-12">
+                <span
+                  aria-hidden="true"
+                  className="order-1 text-3xl font-semibold leading-none tracking-tighter tabular-nums text-slate-200 transition-colors duration-500 group-hover:text-blue-300 motion-reduce:transition-none md:text-5xl"
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+
+                <div
+                  aria-hidden="true"
+                  className="order-2 flex h-14 w-14 items-center justify-center justify-self-end rounded-full bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-100 transition-colors duration-500 group-hover:bg-white/15 group-hover:text-white group-hover:ring-white/30 motion-reduce:transition-none lg:order-4"
+                >
                   {feature.icon}
                 </div>
 
-                <h3 className="mt-7 text-lg font-semibold leading-snug tracking-tight text-slate-950">
+                <h3 className="order-3 col-span-2 text-xl font-semibold leading-tight tracking-tight text-slate-950 transition-colors duration-500 group-hover:text-white motion-reduce:transition-none lg:order-2 lg:col-span-1 lg:text-2xl">
                   {feature.title}
                 </h3>
-                <p className="mt-3 text-[15px] leading-7 text-slate-600">
+
+                <p className="order-4 col-span-2 max-w-md text-base leading-7 text-slate-600 transition-colors duration-500 group-hover:text-blue-100 motion-reduce:transition-none lg:order-3 lg:col-span-1">
                   {feature.description}
                 </p>
               </div>
@@ -121,4 +142,4 @@ export default function Features() {
       </div>
     </section>
   );
-}
+};

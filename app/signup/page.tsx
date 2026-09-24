@@ -342,9 +342,9 @@ export default function Signup() {
                 </label>
 
                 {/* Submit */}
-                <button
+                <Link
+                  href="/dashboard"
                   type="submit"
-                  disabled={loading}
                   className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading ? (
@@ -355,7 +355,7 @@ export default function Signup() {
                   ) : (
                     "Create account"
                   )}
-                </button>
+                </Link>
               </form>
 
               {/* Login link */}

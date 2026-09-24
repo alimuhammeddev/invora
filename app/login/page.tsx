@@ -264,9 +264,9 @@ export default function Login() {
                   Keep me signed in
                 </label>
 
-                <button
+                <Link
+                  href="/dashboard"
                   type="submit"
-                  disabled={loading}
                   className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white"
                 >
                   {loading ? (
@@ -277,7 +277,7 @@ export default function Login() {
                   ) : (
                     "Log in"
                   )}
-                </button>
+                </Link>
               </form>
 
               <p className="mt-8 text-center text-sm text-slate-600">

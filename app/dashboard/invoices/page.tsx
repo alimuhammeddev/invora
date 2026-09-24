@@ -238,39 +238,118 @@ export default function Invoices() {
               <span className="text-right">Amount</span>
             </div>
 
-            <ul className="divide-y divide-neutral-100">
-              {filtered.map((invoice) => (
-                <li key={invoice.id}>
-                  <Link
-                    href={`/dashboard/invoices/${invoice.id}`}
-                    className="grid grid-cols-2 gap-x-4 gap-y-2 px-6 py-4 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:bg-blue-50 sm:grid-cols-[1.2fr_1fr_0.8fr_0.8fr_0.9fr] sm:items-center"
-                  >
-                    <span className="flex items-center gap-2 text-sm font-medium text-neutral-950">
-                      {invoice.id}
-                    </span>
+           {/* Invoice cards */}
+<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+  {filtered.map((invoice) => (
+    <Link
+      key={invoice.id}
+      href={`/dashboard/invoices/${invoice.id}`}
+      className="group relative overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_12px_35px_rgba(15,23,42,0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+    >
+      {/* Subtle blue glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-blue-50 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
+      />
 
-                    <span className="text-sm text-neutral-600 sm:order-none">
-                      {invoice.client}
-                    </span>
+      {/* Top row */}
+      <div className="relative flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+            <Icon className="h-5 w-5">
+              {DocumentPaths}
+            </Icon>
+          </span>
 
-                    <span className="order-4 text-sm tabular-nums text-neutral-500 sm:order-none">
-                      {formatDate(invoice.issuedOn)}
-                    </span>
+          <div>
+            <p className="text-sm font-semibold text-neutral-950">
+              {invoice.id}
+            </p>
 
-                    <span className="order-5 text-sm tabular-nums text-neutral-500 sm:order-none">
-                      {formatDate(invoice.dueOn)}
-                    </span>
+            <p className="mt-0.5 text-xs text-neutral-400">
+              Invoice
+            </p>
+          </div>
+        </div>
 
-                    <span className="order-2 flex items-center justify-end gap-3 text-right sm:order-none">
-                      <StatusPill status={invoice.status} />
-                      <span className="text-sm font-semibold tabular-nums text-neutral-950">
-                        {money.format(invoice.amount)}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+        <StatusPill status={invoice.status} />
+      </div>
+
+      {/* Client */}
+      <div className="relative mt-6">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+          Billed to
+        </p>
+
+        <p className="mt-1 text-base font-semibold text-neutral-900">
+          {invoice.client}
+        </p>
+      </div>
+
+      {/* Amount */}
+      <div className="relative mt-6 rounded-2xl bg-neutral-50 p-4 transition-colors group-hover:bg-blue-50/60">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium text-neutral-400">
+              Total amount
+            </p>
+
+            <p className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-neutral-950">
+              {money.format(invoice.amount)}
+            </p>
+          </div>
+
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-neutral-400 shadow-sm ring-1 ring-neutral-200 transition-all group-hover:bg-blue-600 group-hover:text-white group-hover:ring-blue-600">
+            <Icon className="h-4 w-4">
+              <path d="M5 12h14" />
+              <path d="m13 6 6 6-6 6" />
+            </Icon>
+          </span>
+        </div>
+      </div>
+
+      {/* Dates */}
+      <div className="relative mt-5 grid grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
+        <div>
+          <p className="text-xs text-neutral-400">
+            Issued
+          </p>
+
+          <p className="mt-1 text-sm font-medium text-neutral-700">
+            {formatDate(invoice.issuedOn)}
+          </p>
+        </div>
+
+        <div className="border-l border-neutral-100 pl-4">
+          <p className="text-xs text-neutral-400">
+            Due date
+          </p>
+
+          <p
+            className={`mt-1 text-sm font-medium ${
+              invoice.status === "overdue"
+                ? "text-red-600"
+                : "text-neutral-700"
+            }`}
+          >
+            {formatDate(invoice.dueOn)}
+          </p>
+        </div>
+      </div>
+
+      {/* Bottom hover indicator */}
+      <div className="relative mt-5 flex items-center justify-between text-xs font-medium">
+        <span className="text-neutral-400 transition-colors group-hover:text-neutral-600">
+          View invoice
+        </span>
+
+        <span className="text-blue-600 opacity-0 transition-all duration-200 group-hover:translate-x-1 group-hover:opacity-100">
+          View →
+        </span>
+      </div>
+    </Link>
+  ))}
+</div>
           </>
         )}
       </div>

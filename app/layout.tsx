@@ -10,6 +10,9 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Invora",
   description: "Invoices made simple.",
+  icons: {
+    icon: "/icon.png",
+  }
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

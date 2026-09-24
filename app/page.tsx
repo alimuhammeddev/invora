@@ -1,5 +1,6 @@
 import FAQ from "./components/Faq";
 import Features from "./components/Features";
+import Footer from "./components/Footer";
 import Hero from "./components/Hero";
 import Navbar from "./components/Navbar";
 import Works from "./components/Works";
@@ -25,6 +26,10 @@ export default function Home() {
 
       <div>
         <FAQ />
+      </div>
+
+      <div>
+        <Footer />
       </div>
     </section>
   );

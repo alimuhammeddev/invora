@@ -74,7 +74,7 @@ export default function Navbar() {
                 <Link
                   key={href}
                   href={href}
-                  className="rounded-full px-4 py-1.5 text-sm font-medium text-gray-500 transition-all duration-200 hover:text-gray-950"
+                  className="rounded-full px-4 py-1.5 text-sm font-medium text-gray-500 transition-all duration-200 hover:text-blue-600"
                 >
                   {label}
                 </Link>
@@ -86,14 +86,14 @@ export default function Navbar() {
           <div className="ml-auto hidden items-center gap-2 lg:flex">
             <Link
               href="/login"
-              className="rounded-full px-4 py-2 text-sm font-medium text-gray-500 transition-colors duration-200 hover:text-gray-950"
+              className="rounded-full px-4 py-2 text-sm font-medium text-gray-500 transition-colors duration-200 hover:text-blue-600"
             >
               Log in
             </Link>
 
             <Link
               href="/signup"
-              className="group flex items-center gap-2 rounded-full bg-gray-950 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-gray-800"
+              className="group flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white"
             >
               Create invoice
               <ArrowRight
@@ -155,7 +155,7 @@ export default function Navbar() {
                 <span className="font-mono text-xs text-gray-400">
                   0{i + 1}
                 </span>
-                <span className="text-4xl font-semibold tracking-tight text-gray-400 transition-colors duration-300 group-hover:text-gray-950 sm:text-5xl">
+                <span className="text-3xl font-semibold tracking-tight text-gray-400 transition-colors duration-300 group-hover:text-gray-950 sm:text-5xl">
                   {label}
                 </span>
                 <ArrowUpRight
@@ -178,7 +178,7 @@ export default function Navbar() {
             <Link
               href="/signup"
               onClick={() => setIsOpen(false)}
-              className="flex items-center justify-center gap-2 rounded-full bg-gray-950 px-4 py-4 text-sm font-semibold text-white transition hover:bg-gray-800"
+              className="flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-4 text-sm font-semibold text-white"
             >
               Create invoice
               <ArrowRight size={16} />
@@ -186,7 +186,7 @@ export default function Navbar() {
             <Link
               href="/login"
               onClick={() => setIsOpen(false)}
-              className="mt-4 block text-center text-sm font-medium text-gray-500 transition hover:text-gray-950"
+              className="mt-4 block text-center text-sm font-medium text-gray-500 transition hover:text-blue-600"
             >
               Log in
             </Link>

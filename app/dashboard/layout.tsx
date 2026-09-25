@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import {
   useEffect,
   useRef,
@@ -10,10 +11,9 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
+import { firebaseAuth } from "../../lib/firebase";
 
-const user = { name: "Alex Morgan", email: "alex@company.com" };
-
-function handleLogout() {}
+type DashboardUser = { name: string; email: string };
 
 function greetingForHour(hour: number) {
   if (hour < 12) return "Good morning";
@@ -151,20 +151,34 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase();
 
-function Avatar({ size = "h-9 w-9" }: { size?: string }) {
+function Avatar({
+  size = "h-9 w-9",
+  name,
+}: {
+  size?: string;
+  name: string;
+}) {
   return (
     <span
       aria-hidden="true"
       className={`flex ${size} shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-600 ring-1 ring-blue-100`}
     >
-      {initials(user.name)}
+      {initials(name)}
     </span>
   );
 }
 
 /* ---------- Sidebar ---------- */
 
-function SidebarContent({ onClose }: { onClose?: () => void }) {
+function SidebarContent({
+  user,
+  onLogout,
+  onClose,
+}: {
+  user: DashboardUser;
+  onLogout: () => void;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
@@ -233,16 +247,18 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
       {/* Profile, pinned to the bottom */}
       <div className="shrink-0 border-t border-neutral-200 p-3">
         <div className="flex items-center gap-3 rounded-xl p-2">
-          <Avatar size="h-10 w-10" />
+          <Avatar size="h-10 w-10" name={user.name} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-neutral-950">
               {user.name}
             </p>
-            <p className="truncate text-xs text-neutral-500">{user.email}</p>
+            {user.email && (
+              <p className="truncate text-xs text-neutral-500">{user.email}</p>
+            )}
           </div>
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={onLogout}
             aria-label="Log out"
             title="Log out"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
@@ -263,11 +279,40 @@ export default function DashboardLayout({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState<DashboardUser>({
+    name: "Account",
+    email: "",
+  });
   const menuRef = useRef<HTMLDivElement>(null);
   const greeting = useGreeting();
-  const firstName = user.name.split(" ")[0];
+  const firstName = user.name === "Account" ? "" : user.name.split(" ")[0];
+
+  useEffect(() => {
+    if (!firebaseAuth) return;
+
+    return onAuthStateChanged(firebaseAuth, (firebaseUser) => {
+      if (!firebaseUser) {
+        setUser({ name: "Account", email: "" });
+        return;
+      }
+
+      const email = firebaseUser.email ?? "";
+      const emailName = email.split("@")[0]?.replace(/[._-]+/g, " ") ?? "";
+      setUser({
+        name: firebaseUser.displayName?.trim() || emailName || "Account",
+        email,
+      });
+    });
+  }, []);
+
+  async function onLogout() {
+    if (!firebaseAuth) return;
+    await signOut(firebaseAuth);
+    router.replace("/login");
+  }
 
   // Close menus when the route changes
   useEffect(() => {
@@ -318,7 +363,7 @@ export default function DashboardLayout({
 
       {/* Desktop sidebar: fixed, never scrolls with the page */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-neutral-200 bg-white lg:block">
-        <SidebarContent />
+        <SidebarContent user={user} onLogout={onLogout} />
       </aside>
 
       {/* Mobile drawer */}
@@ -337,7 +382,11 @@ export default function DashboardLayout({
             mobileOpen ? "translate-x-0" : "invisible -translate-x-full"
           }`}
         >
-          <SidebarContent onClose={() => setMobileOpen(false)} />
+          <SidebarContent
+            user={user}
+            onLogout={onLogout}
+            onClose={() => setMobileOpen(false)}
+          />
         </aside>
       </div>
 
@@ -358,7 +407,8 @@ export default function DashboardLayout({
           <p className="truncate md:text-lg text-sm font-medium text-neutral-600" aria-live="off">
             {greeting && (
               <>
-                {greeting}, <span className="text-blue-600">{firstName}</span>
+                {greeting}
+                {firstName && <>, <span className="text-blue-600">{firstName}</span></>}
               </>
             )}
           </p>
@@ -389,7 +439,7 @@ export default function DashboardLayout({
                 aria-expanded={menuOpen}
                 className="flex items-center gap-2.5 rounded-xl p-1 pr-2 transition-colors hover:bg-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:pr-3"
               >
-                <Avatar />
+                <Avatar name={user.name} />
                 <ChevronDownIcon
                   className={`h-4 w-4 text-neutral-400 transition-transform duration-200 motion-reduce:transition-none ${
                     menuOpen ? "rotate-180" : ""
@@ -406,9 +456,11 @@ export default function DashboardLayout({
                     <p className="truncate text-sm font-medium text-neutral-950">
                       {user.name}
                     </p>
-                    <p className="truncate text-xs text-neutral-500">
-                      {user.email}
-                    </p>
+                    {user.email && (
+                      <p className="truncate text-xs text-neutral-500">
+                        {user.email}
+                      </p>
+                    )}
                   </div>
                   <div className="my-1 h-px bg-neutral-100" />
                   <Link
@@ -422,7 +474,7 @@ export default function DashboardLayout({
                   <button
                     type="button"
                     role="menuitem"
-                    onClick={handleLogout}
+                    onClick={onLogout}
                     className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-neutral-700 transition-colors hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus-visible:bg-blue-50"
                   >
                     <LogoutIcon className="h-4 w-4 text-neutral-400 transition-colors group-hover:text-blue-600" />

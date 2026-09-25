@@ -17,16 +17,86 @@ type Invoice = {
 };
 
 const invoices: Invoice[] = [
-  { id: "INV-1042", client: "Northwind Traders", issuedOn: "2026-09-01", dueOn: "2026-09-15", amount: 2400, status: "paid" },
-  { id: "INV-1041", client: "Bluebird Studio", issuedOn: "2026-09-02", dueOn: "2026-09-16", amount: 1180, status: "paid" },
-  { id: "INV-1040", client: "Marlowe & Co.", issuedOn: "2026-08-28", dueOn: "2026-09-11", amount: 3650, status: "overdue" },
-  { id: "INV-1039", client: "Ferro Logistics", issuedOn: "2026-09-05", dueOn: "2026-09-19", amount: 940, status: "unpaid" },
-  { id: "INV-1038", client: "Hearthstone Realty", issuedOn: "2026-08-20", dueOn: "2026-09-03", amount: 5200, status: "overdue" },
-  { id: "INV-1037", client: "Cobalt Interiors", issuedOn: "2026-09-10", dueOn: "2026-09-24", amount: 1750, status: "unpaid" },
-  { id: "INV-1036", client: "Northwind Traders", issuedOn: "2026-08-12", dueOn: "2026-08-26", amount: 2400, status: "paid" },
-  { id: "INV-1035", client: "Ferro Logistics", issuedOn: "2026-09-14", dueOn: "2026-09-28", amount: 820, status: "unpaid" },
-  { id: "INV-1034", client: "Willow Grove Cafe", issuedOn: "2026-08-30", dueOn: "2026-09-13", amount: 615, status: "paid" },
-  { id: "INV-1033", client: "Marlowe & Co.", issuedOn: "2026-09-16", dueOn: "2026-09-30", amount: 3650, status: "unpaid" },
+  {
+    id: "INV-1042",
+    client: "Northwind Traders",
+    issuedOn: "2026-09-01",
+    dueOn: "2026-09-15",
+    amount: 2400,
+    status: "paid",
+  },
+  {
+    id: "INV-1041",
+    client: "Bluebird Studio",
+    issuedOn: "2026-09-02",
+    dueOn: "2026-09-16",
+    amount: 1180,
+    status: "paid",
+  },
+  {
+    id: "INV-1040",
+    client: "Marlowe & Co.",
+    issuedOn: "2026-08-28",
+    dueOn: "2026-09-11",
+    amount: 3650,
+    status: "overdue",
+  },
+  {
+    id: "INV-1039",
+    client: "Ferro Logistics",
+    issuedOn: "2026-09-05",
+    dueOn: "2026-09-19",
+    amount: 940,
+    status: "unpaid",
+  },
+  {
+    id: "INV-1038",
+    client: "Hearthstone Realty",
+    issuedOn: "2026-08-20",
+    dueOn: "2026-09-03",
+    amount: 5200,
+    status: "overdue",
+  },
+  {
+    id: "INV-1037",
+    client: "Cobalt Interiors",
+    issuedOn: "2026-09-10",
+    dueOn: "2026-09-24",
+    amount: 1750,
+    status: "unpaid",
+  },
+  {
+    id: "INV-1036",
+    client: "Northwind Traders",
+    issuedOn: "2026-08-12",
+    dueOn: "2026-08-26",
+    amount: 2400,
+    status: "paid",
+  },
+  {
+    id: "INV-1035",
+    client: "Ferro Logistics",
+    issuedOn: "2026-09-14",
+    dueOn: "2026-09-28",
+    amount: 820,
+    status: "unpaid",
+  },
+  {
+    id: "INV-1034",
+    client: "Willow Grove Cafe",
+    issuedOn: "2026-08-30",
+    dueOn: "2026-09-13",
+    amount: 615,
+    status: "paid",
+  },
+  {
+    id: "INV-1033",
+    client: "Marlowe & Co.",
+    issuedOn: "2026-09-16",
+    dueOn: "2026-09-30",
+    amount: 3650,
+    status: "unpaid",
+  },
 ];
 
 const money = new Intl.NumberFormat("en-US", {
@@ -155,7 +225,8 @@ export default function Invoices() {
             Invoices
           </h1>
           <p className="mt-2 text-base text-neutral-500">
-            {counts.all} invoices in total, {counts.unpaid + counts.overdue} waiting on payment.
+            {counts.all} invoices in total, {counts.unpaid + counts.overdue}{" "}
+            waiting on payment.
           </p>
         </div>
 
@@ -238,118 +309,112 @@ export default function Invoices() {
               <span className="text-right">Amount</span>
             </div>
 
-           {/* Invoice cards */}
-<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-  {filtered.map((invoice) => (
-    <Link
-      key={invoice.id}
-      href={`/dashboard/invoices/${invoice.id}`}
-      className="group relative overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_12px_35px_rgba(15,23,42,0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-    >
-      {/* Subtle blue glow */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-blue-50 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
-      />
+            {/* Invoice cards */}
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {filtered.map((invoice) => (
+                <Link
+                  key={invoice.id}
+                  href={`/dashboard/invoices/${invoice.id}`}
+                  className="group relative overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_12px_35px_rgba(15,23,42,0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                >
+                  {/* Subtle blue glow */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-blue-50 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
+                  />
 
-      {/* Top row */}
-      <div className="relative flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
-            <Icon className="h-5 w-5">
-              {DocumentPaths}
-            </Icon>
-          </span>
+                  {/* Top row */}
+                  <div className="relative flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+                        <Icon className="h-5 w-5">{DocumentPaths}</Icon>
+                      </span>
 
-          <div>
-            <p className="text-sm font-semibold text-neutral-950">
-              {invoice.id}
-            </p>
+                      <div>
+                        <p className="text-sm font-semibold text-neutral-950">
+                          {invoice.id}
+                        </p>
 
-            <p className="mt-0.5 text-xs text-neutral-400">
-              Invoice
-            </p>
-          </div>
-        </div>
+                        <p className="mt-0.5 text-xs text-neutral-400">
+                          Invoice
+                        </p>
+                      </div>
+                    </div>
 
-        <StatusPill status={invoice.status} />
-      </div>
+                    <StatusPill status={invoice.status} />
+                  </div>
 
-      {/* Client */}
-      <div className="relative mt-6">
-        <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
-          Billed to
-        </p>
+                  {/* Client */}
+                  <div className="relative mt-6">
+                    <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+                      Billed to
+                    </p>
 
-        <p className="mt-1 text-base font-semibold text-neutral-900">
-          {invoice.client}
-        </p>
-      </div>
+                    <p className="mt-1 text-base font-semibold text-neutral-900">
+                      {invoice.client}
+                    </p>
+                  </div>
 
-      {/* Amount */}
-      <div className="relative mt-6 rounded-2xl bg-neutral-50 p-4 transition-colors group-hover:bg-blue-50/60">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-medium text-neutral-400">
-              Total amount
-            </p>
+                  {/* Amount */}
+                  <div className="relative mt-6 rounded-2xl bg-neutral-50 p-4 transition-colors group-hover:bg-blue-50/60">
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-medium text-neutral-400">
+                          Total amount
+                        </p>
 
-            <p className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-neutral-950">
-              {money.format(invoice.amount)}
-            </p>
-          </div>
+                        <p className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-neutral-950">
+                          {money.format(invoice.amount)}
+                        </p>
+                      </div>
 
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-neutral-400 shadow-sm ring-1 ring-neutral-200 transition-all group-hover:bg-blue-600 group-hover:text-white group-hover:ring-blue-600">
-            <Icon className="h-4 w-4">
-              <path d="M5 12h14" />
-              <path d="m13 6 6 6-6 6" />
-            </Icon>
-          </span>
-        </div>
-      </div>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-neutral-400 shadow-sm ring-1 ring-neutral-200 transition-all group-hover:bg-blue-600 group-hover:text-white group-hover:ring-blue-600">
+                        <Icon className="h-4 w-4">
+                          <path d="M5 12h14" />
+                          <path d="m13 6 6 6-6 6" />
+                        </Icon>
+                      </span>
+                    </div>
+                  </div>
 
-      {/* Dates */}
-      <div className="relative mt-5 grid grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
-        <div>
-          <p className="text-xs text-neutral-400">
-            Issued
-          </p>
+                  {/* Dates */}
+                  <div className="relative mt-5 grid grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
+                    <div>
+                      <p className="text-xs text-neutral-400">Issued</p>
 
-          <p className="mt-1 text-sm font-medium text-neutral-700">
-            {formatDate(invoice.issuedOn)}
-          </p>
-        </div>
+                      <p className="mt-1 text-sm font-medium text-neutral-700">
+                        {formatDate(invoice.issuedOn)}
+                      </p>
+                    </div>
 
-        <div className="border-l border-neutral-100 pl-4">
-          <p className="text-xs text-neutral-400">
-            Due date
-          </p>
+                    <div className="border-l border-neutral-100 pl-4">
+                      <p className="text-xs text-neutral-400">Due date</p>
 
-          <p
-            className={`mt-1 text-sm font-medium ${
-              invoice.status === "overdue"
-                ? "text-red-600"
-                : "text-neutral-700"
-            }`}
-          >
-            {formatDate(invoice.dueOn)}
-          </p>
-        </div>
-      </div>
+                      <p
+                        className={`mt-1 text-sm font-medium ${
+                          invoice.status === "overdue"
+                            ? "text-red-600"
+                            : "text-neutral-700"
+                        }`}
+                      >
+                        {formatDate(invoice.dueOn)}
+                      </p>
+                    </div>
+                  </div>
 
-      {/* Bottom hover indicator */}
-      <div className="relative mt-5 flex items-center justify-between text-xs font-medium">
-        <span className="text-neutral-400 transition-colors group-hover:text-neutral-600">
-          View invoice
-        </span>
+                  {/* Bottom hover indicator */}
+                  <div className="relative mt-5 flex items-center justify-between text-xs font-medium">
+                    <span className="text-neutral-400 transition-colors group-hover:text-neutral-600">
+                      View invoice
+                    </span>
 
-        <span className="text-blue-600 opacity-0 transition-all duration-200 group-hover:translate-x-1 group-hover:opacity-100">
-          View →
-        </span>
-      </div>
-    </Link>
-  ))}
-</div>
+                    <span className="text-blue-600 opacity-0 transition-all duration-200 group-hover:translate-x-1 group-hover:opacity-100">
+                      View →
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </>
         )}
       </div>

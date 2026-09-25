@@ -77,14 +77,6 @@ const DocumentIcon: IconComponent = ({ className }) => (
   </Icon>
 );
 
-const UsersIcon: IconComponent = ({ className }) => (
-  <Icon className={className}>
-    <circle cx="9" cy="8" r="3.5" />
-    <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
-    <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.2A6.5 6.5 0 0 1 21.5 20" />
-  </Icon>
-);
-
 const SlidersIcon: IconComponent = ({ className }) => (
   <Icon className={className}>
     <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
@@ -142,8 +134,7 @@ const navItems: {
 }[] = [
   { label: "Dashboard", href: "/dashboard", icon: GridIcon, exact: true },
   { label: "Invoices", href: "/dashboard/invoices", icon: DocumentIcon },
-  { label: "Clients", href: "/dashboard/clients", icon: UsersIcon },
-  { label: "Settings", href: "/dashboard/settings", icon: SlidersIcon },
+  { label: "Settings", href: "/dashboard/settings-page", icon: SlidersIcon },
 ];
 
 function isActive(pathname: string, item: (typeof navItems)[number]) {

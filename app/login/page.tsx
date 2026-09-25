@@ -2,7 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
+import {
+  browserLocalPersistence,
+  browserSessionPersistence,
+  GoogleAuthProvider,
+  setPersistence,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+} from "firebase/auth";
+import {
+  firebaseAuth,
+  firebaseSetupMessage,
+  getFirebaseAuthErrorMessage,
+} from "../../lib/firebase";
 
 const brand = "Invora";
 
@@ -134,6 +148,7 @@ const iconStyles =
   "pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-blue-600";
 
 export default function Login() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,10 +156,49 @@ export default function Login() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1200));
 
-    setLoading(false);
+    if (!firebaseAuth) {
+      setError(firebaseSetupMessage);
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    const remember = formData.get("remember") === "on";
+    setLoading(true);
+
+    try {
+      await setPersistence(
+        firebaseAuth,
+        remember ? browserLocalPersistence : browserSessionPersistence,
+      );
+      await signInWithEmailAndPassword(firebaseAuth, email, password);
+      router.replace("/dashboard");
+    } catch (authError) {
+      setError(getFirebaseAuthErrorMessage(authError));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setError(null);
+
+    if (!firebaseAuth) {
+      setError(firebaseSetupMessage);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+      router.replace("/dashboard");
+    } catch (authError) {
+      setError(getFirebaseAuthErrorMessage(authError));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -170,10 +224,12 @@ export default function Login() {
 
               <button
                 type="button"
+                onClick={handleGoogleSignIn}
+                disabled={loading}
                 className="mt-8 flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-white text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-200 transition-colors hover:bg-slate-50 hover:ring-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
               >
-                <GoogleIcon />
-                Continue with Google
+                {loading ? <Spinner /> : <GoogleIcon />}
+                {loading ? "Signing in" : "Continue with Google"}
               </button>
 
               <div className="my-7 flex items-center gap-4 text-xs text-slate-400">
@@ -264,10 +320,10 @@ export default function Login() {
                   Keep me signed in
                 </label>
 
-                <Link
-                  href="/dashboard"
+                <button
                   type="submit"
-                  className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white"
+                  disabled={loading}
+                  className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading ? (
                     <>
@@ -277,7 +333,7 @@ export default function Login() {
                   ) : (
                     "Log in"
                   )}
-                </Link>
+                </button>
               </form>
 
               <p className="mt-8 text-center text-sm text-slate-600">

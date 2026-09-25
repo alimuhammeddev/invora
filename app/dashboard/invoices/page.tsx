@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
+import NewInvoiceModal from "./components/NewInvoiceModal";
 
 /* ---------- Sample data (replace with your real invoices) ---------- */
 
@@ -14,6 +15,7 @@ type Invoice = {
   dueOn: string;
   amount: number;
   status: Status;
+  currency?: "NGN";
 };
 
 const invoices: Invoice[] = [
@@ -111,6 +113,11 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 
 const formatDate = (iso: string) => dateFormatter.format(new Date(iso));
 
+const formatAmount = (invoice: Invoice) =>
+  invoice.currency === "NGN"
+    ? `₦${invoice.amount.toLocaleString("en-NG")}`
+    : money.format(invoice.amount);
+
 /* ---------- Icons ---------- */
 
 function Icon({
@@ -168,10 +175,10 @@ function StatusPill({ status }: { status: Status }) {
         aria-hidden="true"
         className={`h-1.5 w-1.5 rounded-full ${
           status === "paid"
-            ? "bg-blue-600"
+            ? "bg-emerald-700"
             : status === "unpaid"
               ? "bg-amber-500"
-              : "bg-red-600"
+              : "bg-rose-700"
         }`}
       />
       {config.label}
@@ -193,20 +200,22 @@ const filters: { key: "all" | Status; label: string }[] = [
 export default function Invoices() {
   const [filter, setFilter] = useState<(typeof filters)[number]["key"]>("all");
   const [query, setQuery] = useState("");
+  const [invoiceList, setInvoiceList] = useState(invoices);
+  const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
 
   const counts = useMemo(
     () => ({
-      all: invoices.length,
-      paid: invoices.filter((i) => i.status === "paid").length,
-      unpaid: invoices.filter((i) => i.status === "unpaid").length,
-      overdue: invoices.filter((i) => i.status === "overdue").length,
+      all: invoiceList.length,
+      paid: invoiceList.filter((i) => i.status === "paid").length,
+      unpaid: invoiceList.filter((i) => i.status === "unpaid").length,
+      overdue: invoiceList.filter((i) => i.status === "overdue").length,
     }),
-    [],
+    [invoiceList],
   );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return invoices.filter((invoice) => {
+    return invoiceList.filter((invoice) => {
       const matchesFilter = filter === "all" || invoice.status === filter;
       const matchesQuery =
         q.length === 0 ||
@@ -214,9 +223,14 @@ export default function Invoices() {
         invoice.client.toLowerCase().includes(q);
       return matchesFilter && matchesQuery;
     });
-  }, [filter, query]);
+  }, [filter, invoiceList, query]);
+
+  const nextInvoiceNumber = `INV-${Math.max(
+    ...invoiceList.map((invoice) => Number(invoice.id.replace("INV-", "")) || 0),
+  ) + 1}`;
 
   return (
+    <>
     <section className="mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -230,15 +244,16 @@ export default function Invoices() {
           </p>
         </div>
 
-        <Link
-          href="/dashboard/invoices/new"
+        <button
+          type="button"
+          onClick={() => setNewInvoiceOpen(true)}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
         >
           <Icon className="h-4 w-4">
             <path d="M12 5v14M5 12h14" />
           </Icon>
           New invoice
-        </Link>
+        </button>
       </div>
 
       {/* Toolbar: filters + search */}
@@ -364,7 +379,7 @@ export default function Invoices() {
                         </p>
 
                         <p className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-neutral-950">
-                          {money.format(invoice.amount)}
+                          {formatAmount(invoice)}
                         </p>
                       </div>
 
@@ -419,5 +434,18 @@ export default function Invoices() {
         )}
       </div>
     </section>
+    <NewInvoiceModal
+      open={newInvoiceOpen}
+      invoiceNumber={nextInvoiceNumber}
+      onClose={() => setNewInvoiceOpen(false)}
+      onCreate={(draft) => {
+        setInvoiceList((current) => [
+          { ...draft, id: nextInvoiceNumber, status: "unpaid", currency: "NGN" },
+          ...current,
+        ]);
+        setNewInvoiceOpen(false);
+      }}
+    />
+    </>
   );
 }

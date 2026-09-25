@@ -16,6 +16,21 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Firebase Authentication
+
+Create `.env.local` in the project root and add the web app configuration from Firebase Console > Project settings > Your apps:
+
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+```
+
+These `NEXT_PUBLIC_` values are Firebase web client configuration, not service-account credentials.
+
+In Firebase Console, enable **Email/Password** and **Google** under Authentication > Sign-in method. Add `localhost` and your deployed hostname to Authentication > Settings > Authorized domains. Restart the development server after changing `.env.local`.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

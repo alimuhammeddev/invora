@@ -2,7 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  updateProfile,
+} from "firebase/auth";
+import {
+  firebaseAuth,
+  firebaseSetupMessage,
+  getFirebaseAuthErrorMessage,
+} from "../../lib/firebase";
 
 const brand = "Invora";
 
@@ -71,12 +83,7 @@ const EyeOffIcon = () => (
 );
 
 const CheckIcon = () => (
-  <svg
-    viewBox="0 0 16 16"
-    fill="none"
-    aria-hidden="true"
-    className="h-3 w-3"
-  >
+  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="h-3 w-3">
     <path
       d="M3.5 8.5l3 3 6-6.5"
       stroke="currentColor"
@@ -139,6 +146,7 @@ const iconStyles =
   "pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-blue-600";
 
 export default function Signup() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -147,36 +155,67 @@ export default function Signup() {
     event.preventDefault();
 
     setError(null);
+
+    if (!firebaseAuth) {
+      setError(firebaseSetupMessage);
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const name = String(formData.get("name") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
     setLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      const credential = await createUserWithEmailAndPassword(
+        firebaseAuth,
+        email,
+        password,
+      );
+      await updateProfile(credential.user, { displayName: name });
+      router.replace("/dashboard");
+    } catch (authError) {
+      setError(getFirebaseAuthErrorMessage(authError));
+    } finally {
+      setLoading(false);
+    }
+  }
 
-    setLoading(false);
+  async function handleGoogleSignIn() {
+    setError(null);
+
+    if (!firebaseAuth) {
+      setError(firebaseSetupMessage);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+      router.replace("/dashboard");
+    } catch (authError) {
+      setError(getFirebaseAuthErrorMessage(authError));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <section className="bg-white p-3 lg:p-4">
       <div className="grid min-h-[calc(100vh-1.5rem)] lg:min-h-[calc(100vh-2rem)] lg:grid-cols-2">
-
         {/* Left: Signup form */}
         <div className="relative flex flex-col px-4 py-6 sm:px-12 lg:px-16 lg:py-8">
-
           {/* Logo */}
           <Link
             href="/"
             className="inline-flex w-fit items-center gap-2.5 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
-            <Image
-              src="/logo.png"
-              alt="Invora"
-              width={100}
-              height={100}
-            />
+            <Image src="/logo.png" alt="Invora" width={100} height={100} />
           </Link>
 
           <div className="flex flex-1 items-center justify-center py-12">
             <div className="w-full max-w-sm">
-
               {/* Heading */}
               <h1 className="text-xl font-semibold tracking-[-0.03em] text-slate-950 md:text-2xl">
                 Create your account
@@ -189,10 +228,12 @@ export default function Signup() {
               {/* Google */}
               <button
                 type="button"
-                className="mt-8 flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-white text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-200 transition-colors hover:bg-slate-50 hover:ring-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                className="mt-8 flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-white text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-200 transition-colors hover:bg-slate-50 hover:ring-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <GoogleIcon />
-                Continue with Google
+                {loading ? <Spinner /> : <GoogleIcon />}
+                {loading ? "Signing in" : "Continue with Google"}
               </button>
 
               {/* Divider */}
@@ -207,7 +248,6 @@ export default function Signup() {
                 className="space-y-5"
                 noValidate={false}
               >
-
                 {/* Error */}
                 {error && (
                   <div
@@ -342,9 +382,9 @@ export default function Signup() {
                 </label>
 
                 {/* Submit */}
-                <Link
-                  href="/dashboard"
+                <button
                   type="submit"
+                  disabled={loading}
                   className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading ? (
@@ -355,7 +395,7 @@ export default function Signup() {
                   ) : (
                     "Create account"
                   )}
-                </Link>
+                </button>
               </form>
 
               {/* Login link */}
@@ -374,7 +414,6 @@ export default function Signup() {
 
         {/* Right: Brand panel */}
         <div className="relative hidden overflow-hidden rounded-4xl bg-blue-600 p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-14">
-
           {/* Background grid */}
           <div
             aria-hidden="true"
@@ -390,14 +429,12 @@ export default function Signup() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70 motion-reduce:animate-none" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
               </span>
-
               Simple invoicing, made better
             </span>
           </div>
 
           {/* Main content */}
           <div className="relative pb-24">
-
             <h2 className="max-w-md text-balance font-semibold leading-[1.08] tracking-[-0.035em] md:text-3xl">
               Everything you need to get paid.
             </h2>
@@ -409,10 +446,7 @@ export default function Signup() {
 
             <ul className="mt-9 space-y-4">
               {highlights.map((text) => (
-                <li
-                  key={text}
-                  className="flex items-center gap-3 text-[15px]"
-                >
+                <li key={text} className="flex items-center gap-3 text-[15px]">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-inset ring-white/25">
                     <CheckIcon />
                   </span>

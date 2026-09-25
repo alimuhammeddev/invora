@@ -101,7 +101,7 @@ export default function Dashboard() {
         </div>
 
         <Link
-          href="/dashboard/invoices/new"
+          href="/dashboard/invoices"
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
         >
           <Icon className="h-4 w-4">

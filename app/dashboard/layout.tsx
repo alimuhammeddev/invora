@@ -355,7 +355,7 @@ export default function DashboardLayout({
             <MenuIcon />
           </button>
 
-          <p className="truncate text-lg font-medium text-neutral-600" aria-live="off">
+          <p className="truncate md:text-lg text-sm font-medium text-neutral-600" aria-live="off">
             {greeting && (
               <>
                 {greeting}, <span className="text-blue-600">{firstName}</span>
@@ -412,7 +412,7 @@ export default function DashboardLayout({
                   </div>
                   <div className="my-1 h-px bg-neutral-100" />
                   <Link
-                    href="/dashboard/settings"
+                    href="/dashboard/settings-page"
                     role="menuitem"
                     className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-neutral-700 transition-colors hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus-visible:bg-blue-50"
                   >

@@ -13,6 +13,12 @@ import {
   subscribeToUserInvoices,
   type InvoiceRecord,
 } from "../../../lib/invoices";
+import {
+  emptyBusinessDetails,
+  getBusinessDetails,
+  hasRequiredBusinessDetails,
+  type BusinessDetails,
+} from "../../../lib/userAccount";
 
 type Status = InvoiceRecord["status"];
 type Invoice = InvoiceRecord;
@@ -134,6 +140,10 @@ export default function Invoices() {
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
+  const [businessDetails, setBusinessDetails] =
+    useState<BusinessDetails>(emptyBusinessDetails);
+  const [businessDetailsLoading, setBusinessDetailsLoading] = useState(true);
+  const [businessPromptOpen, setBusinessPromptOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -144,21 +154,43 @@ export default function Invoices() {
       return;
     }
 
+    let active = true;
+    let businessUserId: string | null = null;
     let unsubscribeInvoices: (() => void) | undefined;
     const unsubscribeAuth = onAuthStateChanged(firebaseAuth, (user) => {
       unsubscribeInvoices?.();
+      businessUserId = user?.uid ?? null;
       setInvoiceList([]);
       setLoading(true);
       setLoadError(null);
 
       if (!user) {
         setUserId(null);
+        setBusinessDetails(emptyBusinessDetails);
+        setBusinessDetailsLoading(false);
         setLoadError("Sign in to view and create your invoices.");
         setLoading(false);
         return;
       }
 
       setUserId(user.uid);
+      setBusinessDetailsLoading(true);
+      void getBusinessDetails(user.uid)
+        .then((details) => {
+          if (active && businessUserId === user.uid) {
+            setBusinessDetails(details);
+          }
+        })
+        .catch(() => {
+          if (active && businessUserId === user.uid) {
+            setBusinessDetails(emptyBusinessDetails);
+          }
+        })
+        .finally(() => {
+          if (active && businessUserId === user.uid) {
+            setBusinessDetailsLoading(false);
+          }
+        });
       unsubscribeInvoices = subscribeToUserInvoices(
         user.uid,
         (invoices) => {
@@ -177,6 +209,7 @@ export default function Invoices() {
     });
 
     return () => {
+      active = false;
       unsubscribeAuth();
       unsubscribeInvoices?.();
     };
@@ -208,6 +241,12 @@ export default function Invoices() {
     draft: Parameters<typeof createUserInvoice>[1],
   ) {
     if (!userId) throw new Error("Sign in before creating an invoice.");
+    const savedBusinessDetails = await getBusinessDetails(userId);
+    if (!hasRequiredBusinessDetails(savedBusinessDetails)) {
+      throw new Error(
+        "Complete your business name and address in Settings > Business details before creating an invoice.",
+      );
+    }
 
     try {
       await createUserInvoice(userId, draft);
@@ -224,6 +263,17 @@ export default function Invoices() {
         "Could not save this invoice. Check your connection and try again.",
       );
     }
+  }
+
+  function openNewInvoice() {
+    if (businessDetailsLoading || loading || !userId || loadError) return;
+    if (!hasRequiredBusinessDetails(businessDetails)) {
+      setBusinessPromptOpen(true);
+      return;
+    }
+
+    setInvoiceNumber(generateInvoiceNumber(invoiceList));
+    setNewInvoiceOpen(true);
   }
 
   return (
@@ -244,11 +294,10 @@ export default function Invoices() {
 
           <button
             type="button"
-            onClick={() => {
-              setInvoiceNumber(generateInvoiceNumber(invoiceList));
-              setNewInvoiceOpen(true);
-            }}
-            disabled={loading || !userId || !!loadError}
+            onClick={openNewInvoice}
+            disabled={
+              loading || businessDetailsLoading || !userId || !!loadError
+            }
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
           >
             <Icon className="h-4 w-4">
@@ -439,6 +488,7 @@ export default function Invoices() {
       <NewInvoiceModal
         open={newInvoiceOpen}
         invoiceNumber={invoiceNumber}
+        businessDetails={businessDetails}
         onClose={() => setNewInvoiceOpen(false)}
         onCreate={async (draft) => {
           await handleCreateInvoice(draft);
@@ -446,6 +496,54 @@ export default function Invoices() {
           setNewInvoiceOpen(false);
         }}
       />
+      {businessPromptOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/45 p-4">
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="business-required-title"
+            aria-describedby="business-required-description"
+            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <Icon className="h-5 w-5">
+                <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" />
+                <path d="M14 3v5h5" />
+              </Icon>
+            </div>
+            <h2
+              id="business-required-title"
+              className="mt-4 text-lg font-semibold text-slate-900"
+            >
+              Add your business details first
+            </h2>
+            <p
+              id="business-required-description"
+              className="mt-2 text-sm leading-6 text-slate-600"
+            >
+              Add your business name and address in Settings before creating an
+              invoice. You can close this message, but invoice creation will
+              stay unavailable until those details are saved.
+            </p>
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setBusinessPromptOpen(false)}
+                className="h-10 rounded-lg px-4 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              >
+                Close
+              </button>
+              <Link
+                href="/dashboard/settings-page#business"
+                onClick={() => setBusinessPromptOpen(false)}
+                className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Go to business settings
+              </Link>
+            </div>
+          </section>
+        </div>
+      )}
     </>
   );
 }

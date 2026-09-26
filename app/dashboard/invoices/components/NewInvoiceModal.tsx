@@ -8,6 +8,7 @@ import {
   formatCurrencyAmount,
 } from "../../../../lib/currency";
 import type { NewInvoiceRecord } from "../../../../lib/invoices";
+import type { BusinessDetails } from "../../../../lib/userAccount";
 
 type LineItem = {
   id: number;
@@ -20,6 +21,7 @@ type LineItem = {
 type NewInvoiceModalProps = {
   open: boolean;
   invoiceNumber: string;
+  businessDetails: BusinessDetails;
   onClose: () => void;
   onCreate: (invoice: NewInvoiceRecord) => Promise<void>;
 };
@@ -63,6 +65,7 @@ async function compressLogo(file: File) {
 export default function NewInvoiceModal({
   open,
   invoiceNumber,
+  businessDetails,
   onClose,
   onCreate,
 }: NewInvoiceModalProps) {
@@ -95,8 +98,8 @@ export default function NewInvoiceModal({
 
   useEffect(() => {
     if (!open) return;
-    setFromName("");
-    setFromAddress("");
+    setFromName(businessDetails.name);
+    setFromAddress(businessDetails.address);
     setLogoPreview(null);
     setLogoFile(null);
     setClient("");
@@ -114,7 +117,7 @@ export default function NewInvoiceModal({
     setItems([
       { id: 1, description: "", quantity: 0, price: 0, priceInput: "" },
     ]);
-  }, [open]);
+  }, [open, businessDetails.name, businessDetails.address]);
 
   useEffect(() => {
     if (!open) return;

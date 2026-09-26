@@ -13,6 +13,17 @@ service cloud.firestore {
         || get(profile).data.accountStatus == 'active';
     }
 
+    function hasRequiredBusinessDetails(userId) {
+      let profile = /databases/$(database)/documents/users/$(userId);
+      return exists(profile)
+        && ('businessDetails' in get(profile).data)
+        && get(profile).data.businessDetails is map
+        && get(profile).data.businessDetails.name is string
+        && get(profile).data.businessDetails.name.matches('.*\\S.*')
+        && get(profile).data.businessDetails.address is string
+        && get(profile).data.businessDetails.address.matches('.*\\S.*');
+    }
+
     match /users/{userId} {
       allow read: if ownsAccount(userId);
       allow create: if ownsAccount(userId)
@@ -30,6 +41,7 @@ service cloud.firestore {
         allow read, delete: if ownsAccount(userId) && accountIsActive(userId);
         allow create: if ownsAccount(userId)
           && accountIsActive(userId)
+          && hasRequiredBusinessDetails(userId)
           && request.resource.data.status == 'unpaid';
         allow update: if ownsAccount(userId)
           && accountIsActive(userId)

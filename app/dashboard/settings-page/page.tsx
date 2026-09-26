@@ -5,7 +5,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { firebaseAuth } from "../../../lib/firebase";
-import { softDeleteUserAccount } from "../../../lib/userAccount";
+import {
+  emptyBusinessDetails,
+  getBusinessDetails,
+  hasRequiredBusinessDetails,
+  saveBusinessDetails,
+  softDeleteUserAccount,
+  type BusinessDetails,
+} from "../../../lib/userAccount";
 import { subscribeToUserInvoices } from "../../../lib/invoices";
 import {
   User,
@@ -62,6 +69,13 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("profile");
   const [saved, setSaved] = useState(false);
   const [email, setEmail] = useState("");
+  const [businessDetails, setBusinessDetails] =
+    useState<BusinessDetails>(emptyBusinessDetails);
+  const [businessDetailsComplete, setBusinessDetailsComplete] = useState(false);
+  const [businessDetailsLoading, setBusinessDetailsLoading] = useState(true);
+  const [businessSaving, setBusinessSaving] = useState(false);
+  const [businessSaveError, setBusinessSaveError] = useState<string | null>(null);
+  const [businessSuccessOpen, setBusinessSuccessOpen] = useState(false);
   const [invoiceCount, setInvoiceCount] = useState(0);
   const [clientCount, setClientCount] = useState(0);
   const [billingLoading, setBillingLoading] = useState(false);
@@ -71,10 +85,54 @@ export default function SettingsPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!firebaseAuth) return;
-    return onAuthStateChanged(firebaseAuth, (user) => {
+    if (!firebaseAuth) {
+      setBusinessDetailsLoading(false);
+      return;
+    }
+    let active = true;
+    let currentUserId: string | null = null;
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      currentUserId = user?.uid ?? null;
       setEmail(user?.email ?? "");
+      setBusinessDetailsComplete(false);
+      if (!user) {
+        setBusinessDetails(emptyBusinessDetails);
+        setBusinessDetailsLoading(false);
+        return;
+      }
+
+      setBusinessDetailsLoading(true);
+      void getBusinessDetails(user.uid)
+        .then((details) => {
+          if (active && currentUserId === user.uid) {
+            setBusinessDetails(details);
+            setBusinessDetailsComplete(hasRequiredBusinessDetails(details));
+          }
+        })
+        .catch(() => {
+          if (active && currentUserId === user.uid) {
+            setBusinessDetails(emptyBusinessDetails);
+            setBusinessDetailsComplete(false);
+            setBusinessSaveError(
+              "Could not load saved business details. Check your connection and try again.",
+            );
+          }
+        })
+        .finally(() => {
+          if (active && currentUserId === user.uid) {
+            setBusinessDetailsLoading(false);
+          }
+        });
     });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (window.location.hash === "#business") setActiveSection("business");
   }, []);
 
   useEffect(() => {
@@ -128,6 +186,43 @@ export default function SettingsPage() {
     setTimeout(() => {
       setSaved(false);
     }, 2000);
+  };
+
+  const handleSaveBusinessDetails = async () => {
+    setBusinessSaveError(null);
+    if (!hasRequiredBusinessDetails(businessDetails)) {
+      setBusinessSaveError("Business name and address are required to create invoices.");
+      return;
+    }
+
+    const currentUser = firebaseAuth?.currentUser;
+    if (!currentUser) {
+      setBusinessSaveError("Sign in again before saving business details.");
+      return;
+    }
+
+    setBusinessSaving(true);
+    try {
+      await saveBusinessDetails(currentUser, businessDetails);
+      const isFirstCompletion = !businessDetailsComplete;
+      setBusinessDetails({
+        ...businessDetails,
+        name: businessDetails.name.trim(),
+        email: businessDetails.email.trim(),
+        phone: businessDetails.phone.trim(),
+        address: businessDetails.address.trim(),
+      });
+      setBusinessDetailsComplete(true);
+      setSaved(true);
+      if (isFirstCompletion) setBusinessSuccessOpen(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      setBusinessSaveError(
+        "Could not save business details. Check your connection and try again.",
+      );
+    } finally {
+      setBusinessSaving(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -351,7 +446,15 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="text"
-                      defaultValue="Your Business"
+                      value={businessDetails.name}
+                      onChange={(event) =>
+                        setBusinessDetails((details) => ({
+                          ...details,
+                          name: event.target.value,
+                        }))
+                      }
+                      disabled={businessDetailsLoading || businessSaving}
+                      required
                       className={businessInputClassName}
                     />
                     <p className="mt-1.5 text-xs text-slate-400">
@@ -366,7 +469,14 @@ export default function SettingsPage() {
                       </label>
                       <input
                         type="email"
-                        defaultValue="hello@business.com"
+                        value={businessDetails.email}
+                        onChange={(event) =>
+                          setBusinessDetails((details) => ({
+                            ...details,
+                            email: event.target.value,
+                          }))
+                        }
+                        disabled={businessDetailsLoading || businessSaving}
                         className={businessInputClassName}
                       />
                     </div>
@@ -378,6 +488,14 @@ export default function SettingsPage() {
                       <input
                         type="tel"
                         placeholder="+234 800 000 0000"
+                        value={businessDetails.phone}
+                        onChange={(event) =>
+                          setBusinessDetails((details) => ({
+                            ...details,
+                            phone: event.target.value,
+                          }))
+                        }
+                        disabled={businessDetailsLoading || businessSaving}
                         className={businessInputClassName}
                       />
                     </div>
@@ -390,39 +508,35 @@ export default function SettingsPage() {
                     <textarea
                       rows={3}
                       placeholder="Enter your business address"
+                      value={businessDetails.address}
+                      onChange={(event) =>
+                        setBusinessDetails((details) => ({
+                          ...details,
+                          address: event.target.value,
+                        }))
+                      }
+                      disabled={businessDetailsLoading || businessSaving}
+                      required
                       className="mt-1.5 min-h-24 w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                     />
                   </div>
-
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">
-                        Currency
-                      </label>
-                      <select
-                        className={`${businessInputClassName} cursor-pointer`}
-                      >
-                        <option>USD — US Dollar</option>
-                        <option>NGN — Nigerian Naira</option>
-                        <option>GBP — British Pound</option>
-                        <option>EUR — Euro</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">
-                        Tax ID
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Optional"
-                        className={businessInputClassName}
-                      />
-                    </div>
-                  </div>
+                  {businessDetailsLoading && (
+                    <p className="text-sm text-slate-500">
+                      Loading business details...
+                    </p>
+                  )}
+                  {businessSaveError && (
+                    <p role="alert" className="text-sm text-rose-700">
+                      {businessSaveError}
+                    </p>
+                  )}
                 </div>
 
-                <SettingsFooter onSave={handleSave} saved={saved} />
+                <SettingsFooter
+                  onSave={handleSaveBusinessDetails}
+                  saved={saved}
+                  saving={businessSaving || businessDetailsLoading}
+                />
               </SettingsPanel>
             )}
 
@@ -685,6 +799,49 @@ export default function SettingsPage() {
           </section>
         </div>
       )}
+      {businessSuccessOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/45 p-4">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="business-saved-title"
+            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <Check size={21} />
+            </div>
+            <h2
+              id="business-saved-title"
+              className="mt-4 text-lg font-semibold text-slate-900"
+            >
+              Business details saved
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Your business details are ready. Continue to your dashboard or
+              go to invoices to create your first invoice.
+            </p>
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setBusinessSuccessOpen(false);
+                  router.push("/dashboard");
+                }}
+                className="h-10 rounded-lg px-4 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              >
+                Go to dashboard
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard/invoices")}
+                className="h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Create an invoice
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   );
 }
@@ -715,9 +872,11 @@ function SettingsPanel({
 function SettingsFooter({
   onSave,
   saved,
+  saving = false,
 }: {
   onSave: () => void;
   saved: boolean;
+  saving?: boolean;
 }) {
   return (
     <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
@@ -727,10 +886,11 @@ function SettingsFooter({
 
       <button
         onClick={onSave}
+        disabled={saving}
         className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
       >
         {saved && <Check size={16} />}
-        {saved ? "Saved" : "Save changes"}
+        {saving ? "Saving..." : saved ? "Saved" : "Save changes"}
       </button>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   browserSessionPersistence,
   GoogleAuthProvider,
   setPersistence,
+  signOut,
   signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
@@ -17,6 +18,7 @@ import {
   firebaseSetupMessage,
   getFirebaseAuthErrorMessage,
 } from "../../lib/firebase";
+import { isAccountDeleted } from "../../lib/userAccount";
 
 const brand = "Invora";
 
@@ -173,10 +175,23 @@ export default function Login() {
         firebaseAuth,
         remember ? browserLocalPersistence : browserSessionPersistence,
       );
-      await signInWithEmailAndPassword(firebaseAuth, email, password);
+      const credential = await signInWithEmailAndPassword(
+        firebaseAuth,
+        email,
+        password,
+      );
+      if (await isAccountDeleted(credential.user.uid)) {
+        await signOut(firebaseAuth);
+        setError("This account was deleted. Sign up with these credentials to restore your account and invoices.");
+        return;
+      }
       router.replace("/dashboard");
     } catch (authError) {
-      setError(getFirebaseAuthErrorMessage(authError));
+      setError(
+        authError instanceof Error && !("code" in authError)
+          ? authError.message
+          : getFirebaseAuthErrorMessage(authError),
+      );
     } finally {
       setLoading(false);
     }
@@ -192,10 +207,22 @@ export default function Login() {
 
     setLoading(true);
     try {
-      await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+      const credential = await signInWithPopup(
+        firebaseAuth,
+        new GoogleAuthProvider(),
+      );
+      if (await isAccountDeleted(credential.user.uid)) {
+        await signOut(firebaseAuth);
+        setError("This account was deleted. Use Sign up with Google to restore your account and invoices.");
+        return;
+      }
       router.replace("/dashboard");
     } catch (authError) {
-      setError(getFirebaseAuthErrorMessage(authError));
+      setError(
+        authError instanceof Error && !("code" in authError)
+          ? authError.message
+          : getFirebaseAuthErrorMessage(authError),
+      );
     } finally {
       setLoading(false);
     }

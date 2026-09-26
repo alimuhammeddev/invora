@@ -2,23 +2,47 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/invoices/{invoiceId} {
-      allow read, delete: if request.auth != null
-        && request.auth.uid == userId;
-      allow create: if request.auth != null
-        && request.auth.uid == userId
-        && request.resource.data.status == 'unpaid';
-      allow update: if request.auth != null
-        && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+    function ownsAccount(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function accountIsActive(userId) {
+      let profile = /databases/$(database)/documents/users/$(userId);
+      return !exists(profile)
+        || !('accountStatus' in get(profile).data)
+        || get(profile).data.accountStatus == 'active';
+    }
+
+    match /users/{userId} {
+      allow read: if ownsAccount(userId);
+      allow create: if ownsAccount(userId)
+        && request.resource.data.accountStatus == 'active';
+      allow update: if ownsAccount(userId)
         && (
-          (resource.data.status == 'unpaid'
-            && request.resource.data.status in ['paid', 'overdue'])
-          || (resource.data.status == 'overdue'
-            && request.resource.data.status == 'paid')
-          || (resource.data.status == 'paid'
-            && request.resource.data.status == 'paid')
+          request.resource.data.accountStatus == resource.data.accountStatus
+          || (resource.data.accountStatus == 'active'
+            && request.resource.data.accountStatus == 'deleted')
+          || (resource.data.accountStatus == 'deleted'
+            && request.resource.data.accountStatus == 'active')
         );
+
+      match /invoices/{invoiceId} {
+        allow read, delete: if ownsAccount(userId) && accountIsActive(userId);
+        allow create: if ownsAccount(userId)
+          && accountIsActive(userId)
+          && request.resource.data.status == 'unpaid';
+        allow update: if ownsAccount(userId)
+          && accountIsActive(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && (
+            (resource.data.status == 'unpaid'
+              && request.resource.data.status in ['paid', 'overdue'])
+            || (resource.data.status == 'overdue'
+              && request.resource.data.status == 'paid')
+            || (resource.data.status == 'paid'
+              && request.resource.data.status == 'paid')
+          );
+      }
     }
   }
 }

@@ -212,10 +212,10 @@ export default function InvoiceDetailsPage() {
                 <Image
                   src={invoice.logoDataUrl}
                   alt={`${invoice.fromName} logo`}
-                  width={160}
+                  width={100}
                   height={64}
                   unoptimized
-                  className="h-14 w-36 object-contain object-left"
+                  className="object-contain object-left"
                 />
               )}
             </div>

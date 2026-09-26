@@ -52,7 +52,9 @@ async function compressLogo(file: File) {
     image.close();
   }
 
-  throw new Error("This logo could not be compressed small enough. Choose a simpler image.");
+  throw new Error(
+    "This logo could not be compressed small enough. Choose a simpler image.",
+  );
 }
 
 export default function NewInvoiceModal({
@@ -100,7 +102,9 @@ export default function NewInvoiceModal({
     setAccount("");
     setTax("");
     setSaveError(null);
-    setItems([{ id: 1, description: "", quantity: 0, price: 0, priceInput: "" }]);
+    setItems([
+      { id: 1, description: "", quantity: 0, price: 0, priceInput: "" },
+    ]);
   }, [open]);
 
   useEffect(() => {
@@ -117,9 +121,8 @@ export default function NewInvoiceModal({
       }
 
       if (event.key !== "Tab" || !dialogRef.current) return;
-      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-        focusableSelector,
-      );
+      const focusable =
+        dialogRef.current.querySelectorAll<HTMLElement>(focusableSelector);
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
 
@@ -161,7 +164,8 @@ export default function NewInvoiceModal({
     setItems((current) => [
       ...current,
       {
-        id: current.reduce((largest, item) => Math.max(largest, item.id), 0) + 1,
+        id:
+          current.reduce((largest, item) => Math.max(largest, item.id), 0) + 1,
         description: "",
         quantity: 0,
         price: 0,
@@ -222,9 +226,9 @@ export default function NewInvoiceModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-invoice-title"
-        className="flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-neutral-50 shadow-2xl"
+        className="flex max-h-[86vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-neutral-50 shadow-2xl"
       >
-        <header className="flex shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-5 py-4 sm:px-7">
+        <header className="flex shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-5 py-3 sm:px-7">
           <div>
             <p className="text-xs font-medium uppercase text-blue-700">
               Accounts receivable
@@ -290,7 +294,9 @@ export default function NewInvoiceModal({
                           const file = event.currentTarget.files?.[0];
                           if (file) {
                             if (!file.type.startsWith("image/")) {
-                              setSaveError("Choose an image file for the logo.");
+                              setSaveError(
+                                "Choose an image file for the logo.",
+                              );
                             } else {
                               setLogoFile(file);
                               setLogoPreview(URL.createObjectURL(file));
@@ -391,7 +397,9 @@ export default function NewInvoiceModal({
                         <input
                           value={item.description}
                           onChange={(event) =>
-                            updateItem(item.id, { description: event.target.value })
+                            updateItem(item.id, {
+                              description: event.target.value,
+                            })
                           }
                           placeholder="Service or product"
                           className={`${fieldClassName} px-2`}
@@ -406,7 +414,10 @@ export default function NewInvoiceModal({
                           pattern="[1-9][0-9]*"
                           value={item.quantity || ""}
                           onChange={(event) => {
-                            const digits = event.target.value.replace(/\D/g, "");
+                            const digits = event.target.value.replace(
+                              /\D/g,
+                              "",
+                            );
                             updateItem(item.id, {
                               quantity: digits ? Number(digits) : 0,
                             });
@@ -423,7 +434,10 @@ export default function NewInvoiceModal({
                           pattern="[0-9]+([.][0-9]{0,2})?"
                           value={item.priceInput}
                           onChange={(event) => {
-                            const cleaned = event.target.value.replace(/[^\d.]/g, "");
+                            const cleaned = event.target.value.replace(
+                              /[^\d.]/g,
+                              "",
+                            );
                             const decimalIndex = cleaned.indexOf(".");
                             const normalized =
                               decimalIndex === -1
@@ -509,7 +523,11 @@ export default function NewInvoiceModal({
                               .slice(decimalIndex + 1)
                               .replace(/\./g, "")
                               .slice(0, 2)}`;
-                      setTax(normalized.startsWith(".") ? `0${normalized}` : normalized);
+                      setTax(
+                        normalized.startsWith(".")
+                          ? `0${normalized}`
+                          : normalized,
+                      );
                     }}
                     className={fieldClassName}
                   />
@@ -535,88 +553,169 @@ export default function NewInvoiceModal({
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="font-serif text-2xl text-neutral-950">INVOICE</p>
-                      <p className="mt-1 text-xs font-semibold text-blue-700">#{invoiceNumber}</p>
+                      <p className="font-serif text-2xl text-neutral-950">
+                        INVOICE
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-blue-700">
+                        #{invoiceNumber}
+                      </p>
                     </div>
                   </header>
 
                   <section className="grid gap-5 border-b border-neutral-200 py-5 sm:grid-cols-2">
                     <div>
-                      <p className="text-[9px] font-semibold uppercase tracking-widest text-neutral-400">From</p>
-                      <p className="mt-2 text-xs font-semibold text-neutral-950">{fromName || "Your business"}</p>
-                      <p className="mt-1 text-[10px] text-neutral-500">{fromAddress}</p>
+                      <p className="text-[9px] font-semibold uppercase tracking-widest text-neutral-400">
+                        From
+                      </p>
+                      <p className="mt-2 text-xs font-semibold text-neutral-950">
+                        {fromName || "Your business"}
+                      </p>
+                      <p className="mt-1 text-[10px] text-neutral-500">
+                        {fromAddress}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-[9px] font-semibold uppercase tracking-widest text-neutral-400">Bill to</p>
-                      <p className="mt-2 text-xs font-semibold text-neutral-950">{client || "Client name"}</p>
-                      <p className="mt-1 text-[10px] text-neutral-500">{clientAddress || "Client address"}</p>
-                      {clientEmail && <p className="mt-1 text-[10px] text-neutral-500">{clientEmail}</p>}
+                      <p className="text-[9px] font-semibold uppercase tracking-widest text-neutral-400">
+                        Bill to
+                      </p>
+                      <p className="mt-2 text-xs font-semibold text-neutral-950">
+                        {client || "Client name"}
+                      </p>
+                      <p className="mt-1 text-[10px] text-neutral-500">
+                        {clientAddress || "Client address"}
+                      </p>
+                      {clientEmail && (
+                        <p className="mt-1 text-[10px] text-neutral-500">
+                          {clientEmail}
+                        </p>
+                      )}
                     </div>
                   </section>
 
                   <section className="grid grid-cols-2 gap-4 border-b border-neutral-200 py-3 sm:grid-cols-3">
                     <div>
-                      <p className="text-[8px] font-semibold uppercase text-neutral-400">Invoice number</p>
-                      <p className="mt-1 text-[10px] text-neutral-700">#{invoiceNumber}</p>
+                      <p className="text-[8px] font-semibold uppercase text-neutral-400">
+                        Invoice number
+                      </p>
+                      <p className="mt-1 text-[10px] text-neutral-700">
+                        #{invoiceNumber}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-[8px] font-semibold uppercase text-neutral-400">Issued</p>
-                      <p className="mt-1 text-[10px] text-neutral-700">{issuedOn || "Issue date"}</p>
+                      <p className="text-[8px] font-semibold uppercase text-neutral-400">
+                        Issued
+                      </p>
+                      <p className="mt-1 text-[10px] text-neutral-700">
+                        {issuedOn || "Issue date"}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-[8px] font-semibold uppercase text-neutral-400">Due date</p>
-                      <p className="mt-1 text-[10px] text-neutral-700">{dueOn || "Due date"}</p>
+                      <p className="text-[8px] font-semibold uppercase text-neutral-400">
+                        Due date
+                      </p>
+                      <p className="mt-1 text-[10px] text-neutral-700">
+                        {dueOn || "Due date"}
+                      </p>
                     </div>
                   </section>
 
                   <div className="mt-5 flex items-center justify-between">
-                    <h3 className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-500">Description</h3>
-                    <span className="text-[9px] text-neutral-400">{items.length} {items.length === 1 ? "item" : "items"}</span>
+                    <h3 className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                      Description
+                    </h3>
+                    <span className="text-[9px] text-neutral-400">
+                      {items.length} {items.length === 1 ? "item" : "items"}
+                    </span>
                   </div>
                   <table className="mt-2 w-full table-fixed text-left text-[10px]">
                     <thead className="border-y border-neutral-300 text-[8px] uppercase tracking-wide text-neutral-500">
                       <tr>
-                        <th className="w-[46%] py-2 font-medium">Description</th>
-                        <th className="w-[12%] px-1 py-2 text-center font-medium">Qty</th>
-                        <th className="w-[20%] px-1 py-2 text-right font-medium">Price</th>
-                        <th className="w-[22%] py-2 text-right font-medium">Total</th>
+                        <th className="w-[46%] py-2 font-medium">
+                          Description
+                        </th>
+                        <th className="w-[12%] px-1 py-2 text-center font-medium">
+                          Qty
+                        </th>
+                        <th className="w-[20%] px-1 py-2 text-right font-medium">
+                          Price
+                        </th>
+                        <th className="w-[22%] py-2 text-right font-medium">
+                          Total
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100">
                       {items.map((item) => (
                         <tr key={item.id}>
-                          <td className="wrap-break-word py-3 pr-1 text-neutral-800">{item.description || "Item description"}</td>
-                          <td className="px-1 py-3 text-center tabular-nums text-neutral-600">{item.quantity || ""}</td>
-                          <td className="px-1 py-3 text-right tabular-nums text-neutral-600">{item.priceInput ? formatNaira(item.price) : ""}</td>
-                          <td className="py-3 text-right font-medium tabular-nums text-neutral-900">{item.quantity && item.priceInput ? formatNaira(item.quantity * item.price) : ""}</td>
+                          <td className="wrap-break-word py-3 pr-1 text-neutral-800">
+                            {item.description || "Item description"}
+                          </td>
+                          <td className="px-1 py-3 text-center tabular-nums text-neutral-600">
+                            {item.quantity || ""}
+                          </td>
+                          <td className="px-1 py-3 text-right tabular-nums text-neutral-600">
+                            {item.priceInput ? formatNaira(item.price) : ""}
+                          </td>
+                          <td className="py-3 text-right font-medium tabular-nums text-neutral-900">
+                            {item.quantity && item.priceInput
+                              ? formatNaira(item.quantity * item.price)
+                              : ""}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
 
                   <div className="ml-auto mt-4 max-w-56 space-y-2 border-t border-neutral-200 pt-3 text-[10px]">
-                    <div className="flex justify-between gap-3 text-neutral-500"><span>Subtotal</span><span>{formatNaira(subtotal)}</span></div>
-                    <div className="flex justify-between gap-3 text-neutral-500"><span>Tax</span><span>{formatNaira(taxAmount)}</span></div>
+                    <div className="flex justify-between gap-3 text-neutral-500">
+                      <span>Subtotal</span>
+                      <span>{formatNaira(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between gap-3 text-neutral-500">
+                      <span>Tax</span>
+                      <span>{formatNaira(taxAmount)}</span>
+                    </div>
                     <div className="flex items-baseline justify-between border-t border-neutral-300 pt-2 font-semibold text-neutral-950">
-                      <span>Total</span><span className="font-serif text-xl tabular-nums">{formatNaira(total)}</span>
+                      <span>Total</span>
+                      <span className="font-serif text-xl tabular-nums">
+                        {formatNaira(total)}
+                      </span>
                     </div>
                   </div>
 
                   <section className="mt-6 grid gap-3 border-t border-neutral-200 pt-4 sm:grid-cols-2">
                     <div>
-                      <h3 className="text-[9px] font-semibold uppercase text-neutral-400">Payment information</h3>
-                      <p className="mt-2 text-[10px] text-neutral-600">Bank: {bank || "Not provided"}</p>
-                      <p className="mt-1 text-[10px] text-neutral-600">Account: {account || "Not provided"}</p>
+                      <h3 className="text-[9px] font-semibold uppercase text-neutral-400">
+                        Payment information
+                      </h3>
+                      <p className="mt-2 text-[10px] text-neutral-600">
+                        Bank: {bank || "Not provided"}
+                      </p>
+                      <p className="mt-1 text-[10px] text-neutral-600">
+                        Account: {account || "Not provided"}
+                      </p>
                     </div>
                     <div className="sm:text-right">
-                      <p className="text-[9px] font-semibold uppercase text-neutral-400">Due date</p>
-                      <p className="mt-2 text-[10px] text-neutral-700">{dueOn || "Due date"}</p>
+                      <p className="text-[9px] font-semibold uppercase text-neutral-400">
+                        Due date
+                      </p>
+                      <p className="mt-2 text-[10px] text-neutral-700">
+                        {dueOn || "Due date"}
+                      </p>
                     </div>
                   </section>
 
                   <footer className="mt-6 flex items-center justify-between gap-3 border-t border-neutral-200 pt-4">
-                    <p className="text-[9px] text-neutral-500">Invoice Generated From Invora</p>
-                    <Image src="/logo.png" alt="Invora" width={120} height={48} className="h-7 w-auto object-contain" />
+                    <p className="text-[9px] text-neutral-500">
+                      Invoice Generated From Invora
+                    </p>
+                    <Image
+                      src="/logo.png"
+                      alt="Invora"
+                      width={120}
+                      height={48}
+                      className="h-7 w-auto object-contain"
+                    />
                   </footer>
                 </div>
               </article>
@@ -631,7 +730,7 @@ export default function NewInvoiceModal({
               {saveError}
             </p>
           )}
-          <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-neutral-200 bg-white px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+          <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-neutral-200 bg-white px-5 py-3 sm:flex-row sm:justify-end sm:px-7">
             <button
               type="button"
               onClick={onClose}

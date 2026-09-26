@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { firebaseAuth } from "../../../lib/firebase";
+import { softDeleteUserAccount } from "../../../lib/userAccount";
+import { subscribeToUserInvoices } from "../../../lib/invoices";
 import {
   User,
   Building2,
   Bell,
   CreditCard,
   ShieldCheck,
-  Palette,
   ChevronRight,
   Camera,
   Mail,
@@ -47,17 +52,75 @@ const settingsSections = [
     description: "Password and account security",
     icon: ShieldCheck,
   },
-  {
-    id: "appearance",
-    label: "Appearance",
-    description: "Customize your experience",
-    icon: Palette,
-  },
 ];
 
+const businessInputClassName =
+  "mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10";
+
 export default function SettingsPage() {
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState("profile");
   const [saved, setSaved] = useState(false);
+  const [email, setEmail] = useState("");
+  const [invoiceCount, setInvoiceCount] = useState(0);
+  const [clientCount, setClientCount] = useState(0);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError, setBillingError] = useState(false);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!firebaseAuth) return;
+    return onAuthStateChanged(firebaseAuth, (user) => {
+      setEmail(user?.email ?? "");
+    });
+  }, []);
+
+  useEffect(() => {
+    if (activeSection !== "billing") return;
+    if (!firebaseAuth) {
+      setBillingError(true);
+      return;
+    }
+
+    setBillingLoading(true);
+    setBillingError(false);
+    let unsubscribeInvoices: (() => void) | undefined;
+    const unsubscribeAuth = onAuthStateChanged(firebaseAuth, (user) => {
+      unsubscribeInvoices?.();
+      if (!user) {
+        setInvoiceCount(0);
+        setClientCount(0);
+        setBillingLoading(false);
+        return;
+      }
+
+      unsubscribeInvoices = subscribeToUserInvoices(
+        user.uid,
+        (invoices) => {
+          setInvoiceCount(invoices.length);
+          setClientCount(
+            new Set(
+              invoices
+                .map((invoice) => invoice.client.trim().toLowerCase())
+                .filter(Boolean),
+            ).size,
+          );
+          setBillingLoading(false);
+        },
+        () => {
+          setBillingError(true);
+          setBillingLoading(false);
+        },
+      );
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeInvoices?.();
+    };
+  }, [activeSection]);
 
   const handleSave = () => {
     setSaved(true);
@@ -65,6 +128,25 @@ export default function SettingsPage() {
     setTimeout(() => {
       setSaved(false);
     }, 2000);
+  };
+
+  const handleDeleteAccount = async () => {
+    const currentUser = firebaseAuth?.currentUser;
+    if (!currentUser) {
+      setDeleteError("You are not signed in. Sign in again to delete your account.");
+      return;
+    }
+
+    setDeletingAccount(true);
+    setDeleteError(null);
+    try {
+      await softDeleteUserAccount(currentUser);
+      await signOut(currentUser.auth);
+      router.replace("/login");
+    } catch {
+      setDeleteError("We couldn't delete your account. Please try again.");
+      setDeletingAccount(false);
+    }
   };
 
   return (
@@ -207,8 +289,10 @@ export default function SettingsPage() {
 
                       <input
                         type="email"
-                        defaultValue="hello@example.com"
-                        className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                        value={email}
+                        readOnly
+                        placeholder="No email available"
+                        className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3.5 text-sm text-slate-900 outline-none"
                       />
                     </div>
                   </div>
@@ -250,7 +334,7 @@ export default function SettingsPage() {
                 title="Business details"
                 description="Manage the information that appears on your invoices."
               >
-                <div className="space-y-6">
+                <div className="space-y-7">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">
                       Business name
@@ -258,8 +342,11 @@ export default function SettingsPage() {
                     <input
                       type="text"
                       defaultValue="Your Business"
-                      className="settings-input"
+                      className={businessInputClassName}
                     />
+                    <p className="mt-1.5 text-xs text-slate-400">
+                      This name appears at the top of your invoices.
+                    </p>
                   </div>
 
                   <div className="grid gap-5 sm:grid-cols-2">
@@ -270,7 +357,7 @@ export default function SettingsPage() {
                       <input
                         type="email"
                         defaultValue="hello@business.com"
-                        className="settings-input"
+                        className={businessInputClassName}
                       />
                     </div>
 
@@ -281,7 +368,7 @@ export default function SettingsPage() {
                       <input
                         type="tel"
                         placeholder="+234 800 000 0000"
-                        className="settings-input"
+                        className={businessInputClassName}
                       />
                     </div>
                   </div>
@@ -291,9 +378,9 @@ export default function SettingsPage() {
                       Business address
                     </label>
                     <textarea
-                      rows={4}
+                      rows={3}
                       placeholder="Enter your business address"
-                      className="w-full resize-none rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                      className="mt-1.5 min-h-24 w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                     />
                   </div>
 
@@ -302,7 +389,7 @@ export default function SettingsPage() {
                       <label className="mb-2 block text-sm font-medium text-slate-700">
                         Currency
                       </label>
-                      <select className="settings-input">
+                      <select className={`${businessInputClassName} cursor-pointer`}>
                         <option>USD — US Dollar</option>
                         <option>NGN — Nigerian Naira</option>
                         <option>GBP — British Pound</option>
@@ -317,7 +404,7 @@ export default function SettingsPage() {
                       <input
                         type="text"
                         placeholder="Optional"
-                        className="settings-input"
+                        className={businessInputClassName}
                       />
                     </div>
                   </div>
@@ -394,9 +481,15 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                  <UsageCard label="Invoices" value="12 / 20" />
-                  <UsageCard label="Clients" value="8 / 50" />
-                  <UsageCard label="Storage" value="120 MB" />
+                  <UsageCard
+                    label="Invoices"
+                    value={billingLoading ? "Loading..." : billingError ? "Unavailable" : String(invoiceCount)}
+                  />
+                  <UsageCard
+                    label="Clients"
+                    value={billingLoading ? "Loading..." : billingError ? "Unavailable" : String(clientCount)}
+                  />
+                  <UsageCard label="Storage" value="Unlimited" />
                 </div>
 
                 <div className="mt-8 border-t border-slate-100 pt-6">
@@ -421,7 +514,7 @@ export default function SettingsPage() {
                 title="Security"
                 description="Keep your Invora account secure."
               >
-                <div className="space-y-6">
+                <div className="max-w-2xl space-y-5">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">
                       Current password
@@ -430,13 +523,14 @@ export default function SettingsPage() {
                     <div className="relative">
                       <Lock
                         size={17}
-                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                       />
 
                       <input
                         type="password"
+                        autoComplete="current-password"
                         placeholder="Enter current password"
-                        className="settings-input pl-10"
+                        className={`${businessInputClassName} pl-11`}
                       />
                     </div>
                   </div>
@@ -445,22 +539,40 @@ export default function SettingsPage() {
                     <label className="mb-2 block text-sm font-medium text-slate-700">
                       New password
                     </label>
-                    <input
-                      type="password"
-                      placeholder="Enter new password"
-                      className="settings-input"
-                    />
+                    <div className="relative">
+                      <Lock
+                        size={17}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                      />
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={8}
+                        placeholder="Enter new password"
+                        className={`${businessInputClassName} pl-11`}
+                      />
+                    </div>
+                    <p className="mt-1.5 text-xs text-slate-400">
+                      Use at least 8 characters.
+                    </p>
                   </div>
 
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">
                       Confirm new password
                     </label>
-                    <input
-                      type="password"
-                      placeholder="Confirm new password"
-                      className="settings-input"
-                    />
+                    <div className="relative">
+                      <Lock
+                        size={17}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                      />
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="Confirm new password"
+                        className={`${businessInputClassName} pl-11`}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -476,7 +588,14 @@ export default function SettingsPage() {
                     data.
                   </p>
 
-                  <button className="mt-4 flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteConfirmationOpen(true);
+                    }}
+                    className="mt-4 flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                  >
                     <Trash2 size={16} />
                     Delete account
                   </button>
@@ -484,47 +603,53 @@ export default function SettingsPage() {
               </SettingsPanel>
             )}
 
-            {/* Appearance */}
-            {activeSection === "appearance" && (
-              <SettingsPanel
-                title="Appearance"
-                description="Customize how Invora looks for you."
-              >
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Theme
-                  </h3>
-
-                  <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                    <ThemeCard title="Light" active preview="bg-white" />
-
-                    <ThemeCard title="Dark" preview="bg-slate-900" />
-
-                    <ThemeCard
-                      title="System"
-                      preview="bg-gradient-to-br from-white to-slate-900"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-8 border-t border-slate-100 pt-6">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Accent color
-                  </h3>
-
-                  <div className="mt-4 flex gap-3">
-                    <button className="h-9 w-9 rounded-full bg-blue-600 ring-4 ring-blue-100" />
-                    <button className="h-9 w-9 rounded-full bg-violet-600" />
-                    <button className="h-9 w-9 rounded-full bg-emerald-600" />
-                    <button className="h-9 w-9 rounded-full bg-orange-500" />
-                    <button className="h-9 w-9 rounded-full bg-pink-600" />
-                  </div>
-                </div>
-              </SettingsPanel>
-            )}
           </div>
         </div>
       </div>
+      {deleteConfirmationOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/45 p-4">
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-title"
+            aria-describedby="delete-account-description"
+            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-600">
+              <Trash2 size={20} />
+            </div>
+            <h2 id="delete-account-title" className="mt-4 text-lg font-semibold text-slate-900">
+              Delete your account?
+            </h2>
+            <p id="delete-account-description" className="mt-2 text-sm leading-6 text-slate-600">
+              You will be signed out and cannot log in until you restore the account through sign up. Your profile and invoices will remain stored and return when you restore it with the same sign-in details.
+            </p>
+            {deleteError && (
+              <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {deleteError}
+              </p>
+            )}
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmationOpen(false)}
+                disabled={deletingAccount}
+                className="h-10 rounded-lg px-4 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-wait disabled:opacity-60"
+              >
+                {deletingAccount ? "Deleting..." : "Delete account"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   );
 }
@@ -619,32 +744,3 @@ function UsageCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ThemeCard({
-  title,
-  preview,
-  active = false,
-}: {
-  title: string;
-  preview: string;
-  active?: boolean;
-}) {
-  return (
-    <button
-      className={`rounded-xl border p-2 text-left transition ${
-        active
-          ? "border-blue-500 ring-2 ring-blue-500/10"
-          : "border-slate-200 hover:border-slate-300"
-      }`}
-    >
-      <div className={`h-24 rounded-lg ${preview}`}>
-        <div className="p-3">
-          <div className="h-2 w-12 rounded bg-slate-300/50" />
-          <div className="mt-2 h-8 rounded bg-slate-200/50" />
-          <div className="mt-2 h-2 w-16 rounded bg-slate-300/50" />
-        </div>
-      </div>
-
-      <p className="px-1 py-2 text-sm font-medium text-slate-700">{title}</p>
-    </button>
-  );
-}

@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { firebaseAuth } from "../../lib/firebase";
+import { isAccountDeleted } from "../../lib/userAccount";
 
 type DashboardUser = { name: string; email: string };
 
@@ -293,20 +294,40 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!firebaseAuth) return;
 
-    return onAuthStateChanged(firebaseAuth, (firebaseUser) => {
+    let active = true;
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (firebaseUser) => {
       if (!firebaseUser) {
         setUser({ name: "Account", email: "" });
         return;
       }
 
-      const email = firebaseUser.email ?? "";
-      const emailName = email.split("@")[0]?.replace(/[._-]+/g, " ") ?? "";
-      setUser({
-        name: firebaseUser.displayName?.trim() || emailName || "Account",
-        email,
-      });
+      void (async () => {
+        try {
+          if (await isAccountDeleted(firebaseUser.uid)) {
+            await signOut(firebaseAuth);
+            if (active) router.replace("/login");
+            return;
+          }
+        } catch {
+          if (active) router.replace("/login");
+          return;
+        }
+
+        if (!active) return;
+        const email = firebaseUser.email ?? "";
+        const emailName = email.split("@")[0]?.replace(/[._-]+/g, " ") ?? "";
+        setUser({
+          name: firebaseUser.displayName?.trim() || emailName || "Account",
+          email,
+        });
+      })();
     });
-  }, []);
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [router]);
 
   async function onLogout() {
     if (!firebaseAuth) return;

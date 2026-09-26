@@ -7,7 +7,9 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
+  signInWithEmailAndPassword,
   signInWithPopup,
+  signOut,
   updateProfile,
 } from "firebase/auth";
 import {
@@ -15,6 +17,7 @@ import {
   firebaseSetupMessage,
   getFirebaseAuthErrorMessage,
 } from "../../lib/firebase";
+import { activateUserAccount, isAccountDeleted } from "../../lib/userAccount";
 
 const brand = "Invora";
 
@@ -174,9 +177,35 @@ export default function Signup() {
         password,
       );
       await updateProfile(credential.user, { displayName: name });
+      await activateUserAccount(credential.user, name);
       router.replace("/dashboard");
     } catch (authError) {
-      setError(getFirebaseAuthErrorMessage(authError));
+      if (
+        typeof authError === "object" &&
+        authError !== null &&
+        "code" in authError &&
+        authError.code === "auth/email-already-in-use"
+      ) {
+        try {
+          const credential = await signInWithEmailAndPassword(
+            firebaseAuth,
+            email,
+            password,
+          );
+          if (await isAccountDeleted(credential.user.uid)) {
+            await activateUserAccount(credential.user, name);
+            await updateProfile(credential.user, { displayName: name });
+            router.replace("/dashboard");
+          } else {
+            await signOut(firebaseAuth);
+            setError("An account with this email already exists. Log in instead.");
+          }
+        } catch {
+          setError("We couldn't verify this account. Check the original password to restore a deleted account, or log in if the account is active.");
+        }
+      } else {
+        setError(getFirebaseAuthErrorMessage(authError));
+      }
     } finally {
       setLoading(false);
     }
@@ -192,7 +221,11 @@ export default function Signup() {
 
     setLoading(true);
     try {
-      await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+      const credential = await signInWithPopup(
+        firebaseAuth,
+        new GoogleAuthProvider(),
+      );
+      await activateUserAccount(credential.user);
       router.replace("/dashboard");
     } catch (authError) {
       setError(getFirebaseAuthErrorMessage(authError));

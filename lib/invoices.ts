@@ -171,10 +171,11 @@ export async function updateUserInvoiceStatus(
   invoiceId: string,
   status: "paid",
 ) {
-  if (!firebaseDb) throw new Error(firebaseSetupMessage);
+  const db = firebaseDb;
+  if (!db) throw new Error(firebaseSetupMessage);
 
   const invoiceReference = doc(
-    firebaseDb,
+    db,
     "users",
     userId,
     "invoices",
@@ -185,7 +186,7 @@ export async function updateUserInvoiceStatus(
     `invoice-paid-${invoiceId}`,
   );
 
-  await runTransaction(firebaseDb, async (transaction) => {
+  await runTransaction(db, async (transaction) => {
     const invoiceSnapshot = await transaction.get(invoiceReference);
     if (!invoiceSnapshot.exists()) return;
 
@@ -193,7 +194,7 @@ export async function updateUserInvoiceStatus(
     if (invoice.status === "paid") return;
 
     const publicInvoiceReference = invoice.shareId
-      ? doc(firebaseDb, "publicInvoices", invoice.shareId)
+      ? doc(db, "publicInvoices", invoice.shareId)
       : null;
     const publicInvoiceSnapshot = publicInvoiceReference
       ? await transaction.get(publicInvoiceReference)
@@ -220,10 +221,11 @@ async function markUserInvoiceOverdue(
   invoiceId: string,
   today: string,
 ) {
-  if (!firebaseDb) throw new Error(firebaseSetupMessage);
+  const db = firebaseDb;
+  if (!db) throw new Error(firebaseSetupMessage);
 
   const invoiceReference = doc(
-    firebaseDb,
+    db,
     "users",
     userId,
     "invoices",
@@ -234,7 +236,7 @@ async function markUserInvoiceOverdue(
     `invoice-overdue-${invoiceId}`,
   );
 
-  await runTransaction(firebaseDb, async (transaction) => {
+  await runTransaction(db, async (transaction) => {
     const invoiceSnapshot = await transaction.get(invoiceReference);
     if (!invoiceSnapshot.exists()) return;
 
@@ -242,7 +244,7 @@ async function markUserInvoiceOverdue(
     if (invoice.status !== "unpaid" || invoice.dueOn >= today) return;
 
     const publicInvoiceReference = invoice.shareId
-      ? doc(firebaseDb, "publicInvoices", invoice.shareId)
+      ? doc(db, "publicInvoices", invoice.shareId)
       : null;
     const publicInvoiceSnapshot = publicInvoiceReference
       ? await transaction.get(publicInvoiceReference)

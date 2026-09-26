@@ -26,6 +26,21 @@ const formatDate = (iso: string) => dateFormatter.format(new Date(iso));
 
 const formatAmount = (invoice: Invoice) => money(invoice.amount);
 
+function generateInvoiceNumber(invoices: Invoice[]) {
+  const existingNumbers = new Set(invoices.map((invoice) => invoice.invoiceNumber));
+  const year = new Date().getFullYear();
+  let invoiceNumber = "";
+
+  do {
+    const randomValue = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(randomValue);
+    const uniqueDigits = String(randomValue[0] % 1_000_000_000).padStart(9, "0");
+    invoiceNumber = `INV-${year}-${uniqueDigits}`;
+  } while (existingNumbers.has(invoiceNumber));
+
+  return invoiceNumber;
+}
+
 /* ---------- Icons ---------- */
 
 function Icon({
@@ -110,6 +125,7 @@ export default function Invoices() {
   const [query, setQuery] = useState("");
   const [invoiceList, setInvoiceList] = useState<Invoice[]>([]);
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
+  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -181,15 +197,6 @@ export default function Invoices() {
     });
   }, [filter, invoiceList, query]);
 
-  const nextInvoiceNumber = `INV-${String(
-    Math.max(
-      0,
-      ...invoiceList.map(
-        (invoice) => Number(invoice.invoiceNumber.match(/\d+$/)?.[0]) || 0,
-      ),
-    ) + 1,
-  ).padStart(4, "0")}`;
-
   async function handleCreateInvoice(draft: Parameters<typeof createUserInvoice>[1]) {
     if (!userId) throw new Error("Sign in before creating an invoice.");
 
@@ -223,7 +230,11 @@ export default function Invoices() {
 
         <button
           type="button"
-          onClick={() => setNewInvoiceOpen(true)}
+          onClick={() => {
+            setInvoiceNumber(generateInvoiceNumber(invoiceList));
+            setNewInvoiceOpen(true);
+          }}
+          disabled={loading || !userId || !!loadError}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
         >
           <Icon className="h-4 w-4">
@@ -304,15 +315,6 @@ export default function Invoices() {
           </div>
         ) : (
           <>
-            {/* Column headings, desktop only */}
-            <div className="hidden grid-cols-[1.2fr_1fr_0.8fr_0.8fr_0.9fr] gap-4 border-b border-neutral-100 px-6 py-3 text-xs font-medium text-neutral-400 sm:grid">
-              <span>Invoice</span>
-              <span>Client</span>
-              <span>Issued</span>
-              <span>Due</span>
-              <span className="text-right">Amount</span>
-            </div>
-
             {/* Invoice cards */}
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {filtered.map((invoice) => (
@@ -321,11 +323,6 @@ export default function Invoices() {
                   href={`/dashboard/invoices/${invoice.id}`}
                   className="group relative overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_12px_35px_rgba(15,23,42,0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
                 >
-                  {/* Subtle blue glow */}
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-blue-50 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
-                  />
 
                   {/* Top row */}
                   <div className="relative flex items-start justify-between gap-4">
@@ -425,7 +422,7 @@ export default function Invoices() {
     </section>
     <NewInvoiceModal
       open={newInvoiceOpen}
-      invoiceNumber={nextInvoiceNumber}
+      invoiceNumber={invoiceNumber}
       onClose={() => setNewInvoiceOpen(false)}
       onCreate={async (draft) => {
         await handleCreateInvoice(draft);

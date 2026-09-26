@@ -208,6 +208,16 @@ export default function InvoiceDetailsPage() {
         <article className="invoice-print mx-auto max-w-3xl border border-neutral-200 border-t-2 border-t-blue-700 bg-white px-6 py-8 sm:px-12 sm:py-11">
           <header className="flex flex-col justify-between gap-6 border-b border-neutral-200 pb-7 sm:flex-row sm:items-end sm:pb-9">
             <div>
+              {invoice.logoDataUrl && (
+                <Image
+                  src={invoice.logoDataUrl}
+                  alt={`${invoice.fromName} logo`}
+                  width={160}
+                  height={64}
+                  unoptimized
+                  className="mb-3 h-16 w-40 object-contain object-left"
+                />
+              )}
               <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">
                 From
               </p>

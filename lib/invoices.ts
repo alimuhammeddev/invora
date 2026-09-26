@@ -22,6 +22,7 @@ export type InvoiceRecord = {
   invoiceNumber: string;
   fromName: string;
   fromAddress: string;
+  logoDataUrl?: string;
   client: string;
   clientEmail?: string;
   clientAddress: string;

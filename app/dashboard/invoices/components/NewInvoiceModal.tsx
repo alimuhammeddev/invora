@@ -30,6 +30,37 @@ const today = () => {
 
 const formatNaira = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
 
+async function compressLogo(file: File) {
+  if (file.size > 8 * 1024 * 1024) {
+    throw new Error("Choose a logo smaller than 8 MB.");
+  }
+
+  const image = await createImageBitmap(file);
+  const scale = Math.min(1, 512 / Math.max(image.width, image.height));
+  const canvas = document.createElement("canvas");
+  let currentScale = scale;
+
+  try {
+    for (let attempt = 0; attempt < 7; attempt += 1) {
+      canvas.width = Math.max(1, Math.round(image.width * currentScale));
+      canvas.height = Math.max(1, Math.round(image.height * currentScale));
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Could not prepare the selected logo.");
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      const quality = Math.max(0.4, 0.82 - attempt * 0.07);
+      const dataUrl = canvas.toDataURL("image/webp", quality);
+      if (dataUrl.length <= 280_000) return dataUrl;
+      currentScale *= 0.8;
+    }
+  } finally {
+    image.close();
+  }
+
+  throw new Error("This logo could not be compressed small enough. Choose a simpler image.");
+}
+
 export default function NewInvoiceModal({
   open,
   invoiceNumber,
@@ -39,6 +70,7 @@ export default function NewInvoiceModal({
   const [fromName, setFromName] = useState("Acme Digital");
   const [fromAddress, setFromAddress] = useState("Lagos, Nigeria");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [client, setClient] = useState("ABC Limited");
   const [clientEmail, setClientEmail] = useState("");
   const [clientAddress, setClientAddress] = useState("Lagos, Nigeria");
@@ -144,10 +176,12 @@ export default function NewInvoiceModal({
     setSaveError(null);
 
     try {
+      const logoDataUrl = logoFile ? await compressLogo(logoFile) : undefined;
       await onCreate({
         invoiceNumber,
         fromName: fromName.trim(),
         fromAddress: fromAddress.trim(),
+        ...(logoDataUrl ? { logoDataUrl } : {}),
         client: client.trim(),
         clientEmail: clientEmail.trim(),
         clientAddress: clientAddress.trim(),
@@ -254,7 +288,15 @@ export default function NewInvoiceModal({
                         className="sr-only"
                         onChange={(event) => {
                           const file = event.currentTarget.files?.[0];
-                          if (file) setLogoPreview(URL.createObjectURL(file));
+                          if (file) {
+                            if (!file.type.startsWith("image/")) {
+                              setSaveError("Choose an image file for the logo.");
+                            } else {
+                              setLogoFile(file);
+                              setLogoPreview(URL.createObjectURL(file));
+                              setSaveError(null);
+                            }
+                          }
                           event.currentTarget.value = "";
                         }}
                       />
@@ -263,7 +305,10 @@ export default function NewInvoiceModal({
                     {logoPreview && (
                       <button
                         type="button"
-                        onClick={() => setLogoPreview(null)}
+                        onClick={() => {
+                          setLogoPreview(null);
+                          setLogoFile(null);
+                        }}
                         className="h-10 rounded-lg px-2 text-sm text-neutral-500 transition hover:bg-rose-50 hover:text-rose-700"
                       >
                         Remove

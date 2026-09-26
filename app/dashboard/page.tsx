@@ -57,10 +57,7 @@ function greetingForHour(hour: number) {
   return "Good evening";
 }
 
-function summarizeAmounts(
-  invoices: InvoiceRecord[],
-  currencies = invoices,
-) {
+function summarizeAmounts(invoices: InvoiceRecord[], currencies = invoices) {
   const totals = new Map<string, number>(
     currencies.map((invoice) => [invoice.currency, 0] as const),
   );
@@ -82,7 +79,8 @@ export default function Dashboard() {
   const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const firstName = dashboardName === "Account" ? "" : dashboardName.split(" ")[0];
+  const firstName =
+    dashboardName === "Account" ? "" : dashboardName.split(" ")[0];
 
   useEffect(() => {
     const updateGreeting = () =>
@@ -136,7 +134,9 @@ export default function Dashboard() {
   }, []);
 
   const paidInvoices = invoices.filter((invoice) => invoice.status === "paid");
-  const unpaidInvoices = invoices.filter((invoice) => invoice.status !== "paid");
+  const unpaidInvoices = invoices.filter(
+    (invoice) => invoice.status !== "paid",
+  );
   const paid = {
     count: paidInvoices.length,
     amounts: summarizeAmounts(paidInvoices, invoices),
@@ -181,17 +181,25 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="mb-2 text-base font-medium text-neutral-500" aria-live="off">
+          <p
+            className="mb-2 text-base font-medium text-neutral-500"
+            aria-live="off"
+          >
             {greeting}
             {firstName && (
-              <>, <span className="font-semibold text-blue-700">{firstName}</span></>
+              <>
+                ,{" "}
+                <span className="font-semibold text-blue-700">{firstName}</span>
+              </>
             )}
           </p>
           <h1 className="text-2xl font-semibold tracking-[-0.03em] text-neutral-950 md:text-3xl">
             Dashboard Overview
           </h1>
           <p className="mt-2 text-base text-neutral-500">
-            {loading ? "Loading your invoices..." : "Here is a quick summary of your invoices."}
+            {loading
+              ? "Loading your invoices..."
+              : "Here is a quick summary of your invoices."}
           </p>
         </div>
 
@@ -213,7 +221,10 @@ export default function Dashboard() {
           Loading your invoice data...
         </p>
       ) : loadError ? (
-        <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
+        <p
+          role="alert"
+          className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700"
+        >
           {loadError}
         </p>
       ) : invoices.length === 0 ? (
@@ -222,172 +233,175 @@ export default function Dashboard() {
             No invoices yet
           </h2>
           <p className="mt-2 max-w-sm text-sm leading-6 text-neutral-500">
-            Create your first invoice to see your balances and payment activity here.
+            Create your first invoice to see your balances and payment activity
+            here.
           </p>
-            <Link
-              href="/dashboard/invoices"
-              className="mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-            >
-              <Icon className="h-4 w-4">
-                <path d="M12 5v14M5 12h14" />
-              </Icon>
-              Create invoice
-            </Link>
+          <Link
+            href="/dashboard/invoices"
+            className="mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          >
+            <Icon className="h-4 w-4">
+              <path d="M12 5v14M5 12h14" />
+            </Icon>
+            Create invoice
+          </Link>
         </section>
       ) : (
         <>
-      {/* Overview: total, split between paid and unpaid */}
-      <section
-        aria-labelledby="overview-heading"
-        className="rounded-4xl bg-blue-600 p-7 text-white sm:p-10"
-      >
-        <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2
-              id="overview-heading"
-              className="text-sm font-medium text-blue-100"
-            >
-              Total invoiced
-            </h2>
-            <p className="mt-3 text-5xl font-semibold tabular-nums sm:text-7xl">
-              {total.amounts.map(({ currency, amount }) => (
-                <span key={currency} className="block text-xl md:text-3xl">
-                  {formatCurrencyAmount(amount, currency, "code")}
-                </span>
-              ))}
-            </p>
-            <p className="mt-3 text-base text-blue-100">
-              across {total.count} invoices
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white/10 px-5 py-4 sm:text-right">
-            <p className="text-2xl font-semibold tabular-nums tracking-tight">
-              {paidPercent}%
-            </p>
-            <p className="mt-0.5 text-sm text-blue-100">invoices paid</p>
-          </div>
-        </div>
-
-        {/* Paid vs unpaid, sized by amount */}
-        <div className="mt-10">
-          <div
-            role="img"
-            aria-label={`${paidPercent}% of invoices are paid and ${unpaidPercent}% are unpaid`}
-            className="flex h-4 gap-1"
+          {/* Overview: total, split between paid and unpaid */}
+          <section
+            aria-labelledby="overview-heading"
+            className="rounded-4xl bg-blue-600 p-7 text-white sm:p-10"
           >
-            <div
-              style={{ flex: `${paid.count || 1} 1 0%` }}
-              className="rounded-full bg-white"
-            />
-            <div
-              style={{ flex: `${unpaid.count || 1} 1 0%` }}
-              className="rounded-full bg-amber-300"
-            />
-          </div>
-
-          <dl className="mt-6 grid gap-6 sm:grid-cols-2">
-            <div>
-              <dt className="flex items-center gap-2 text-sm font-medium text-blue-100">
-                <span className="h-2.5 w-2.5 rounded-full bg-white" />
-                Paid
-              </dt>
-              <dd className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight">
-                {paid.amounts.map(({ currency, amount }) => (
-                  <span key={currency} className="block text-lg">
-                    {formatCurrencyAmount(amount, currency, "code")}
-                  </span>
-                ))}
-              </dd>
-              <dd className="mt-0.5 text-sm tabular-nums text-blue-100">
-                {paid.count} invoices, {paidPercent}% of invoices
-              </dd>
-            </div>
-            <div>
-              <dt className="flex items-center gap-2 text-sm font-medium text-blue-100">
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
-                Unpaid
-              </dt>
-              <dd className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight">
-                {unpaid.amounts.map(({ currency, amount }) => (
-                  <span key={currency} className="block text-lg">
-                    {formatCurrencyAmount(amount, currency, "code")}
-                  </span>
-                ))}
-              </dd>
-              <dd className="mt-0.5 text-sm tabular-nums text-blue-100">
-                {unpaid.count} invoices, {unpaidPercent}% of invoices
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </section>
-
-      {/* Status cards: each one opens the matching invoice list */}
-      <div className="grid gap-4 md:grid-cols-2 lg:gap-6">
-        {statuses.map((s) => (
-          <Link
-            key={s.label}
-            href={s.href}
-            className="group flex flex-col rounded-3xl border border-neutral-200 bg-white p-7 transition-colors hover:border-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-          >
-            <div className="flex items-center gap-3">
-              <span
-                className={`flex h-10 w-10 items-center justify-center rounded-xl ${s.tile}`}
-              >
-                <Icon>{s.icon}</Icon>
-              </span>
-              <h2 className="text-sm font-medium text-neutral-600">
-                {s.label}
-              </h2>
-            </div>
-
-            <div className="mt-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+            <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-2xl font-semibold tabular-nums tracking-tight text-neutral-950">
-                  {s.amounts.map(({ currency, amount }) => (
-                    <span key={currency} className="block text-base">
+                <h2
+                  id="overview-heading"
+                  className="text-sm font-medium text-blue-100"
+                >
+                  Total invoiced
+                </h2>
+                <p className="mt-3 text-5xl font-semibold tabular-nums sm:text-7xl">
+                  {total.amounts.map(({ currency, amount }) => (
+                    <span key={currency} className="block text-xl md:text-3xl">
                       {formatCurrencyAmount(amount, currency, "code")}
                     </span>
                   ))}
                 </p>
-                <p className="mt-1 text-sm text-neutral-500">{s.note}</p>
+                <p className="mt-3 text-base text-blue-100">
+                  across {total.count} invoices
+                </p>
               </div>
-              <p className="flex items-baseline gap-2">
-                <span className="text-3xl font-semibold tabular-nums tracking-tighter text-neutral-950">
-                  {s.count}
-                </span>
-                <span className="text-sm text-neutral-500">invoices</span>
-              </p>
+
+              <div className="rounded-2xl bg-white/10 px-5 py-4 sm:text-right">
+                <p className="text-2xl font-semibold tabular-nums tracking-tight">
+                  {paidPercent}%
+                </p>
+                <p className="mt-0.5 text-sm text-blue-100">invoices paid</p>
+              </div>
             </div>
 
-            <span className="mt-7 inline-flex items-center gap-1 border-t border-neutral-100 pt-5 text-sm font-medium text-blue-600 group-hover:text-blue-700">
-              {s.cta}
-              <Icon className="h-4 w-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none">
-                <path d="m9 6 6 6-6 6" />
+            {/* Paid vs unpaid, sized by amount */}
+            <div className="mt-10">
+              <div
+                role="img"
+                aria-label={`${paidPercent}% of invoices are paid and ${unpaidPercent}% are unpaid`}
+                className="flex h-4 gap-1"
+              >
+                <div
+                  style={{ flex: `${paid.count || 1} 1 0%` }}
+                  className="rounded-full bg-white"
+                />
+                <div
+                  style={{ flex: `${unpaid.count || 1} 1 0%` }}
+                  className="rounded-full bg-amber-300"
+                />
+              </div>
+
+              <dl className="mt-6 grid gap-6 sm:grid-cols-2">
+                <div>
+                  <dt className="flex items-center gap-2 text-sm font-medium text-blue-100">
+                    <span className="h-2.5 w-2.5 rounded-full bg-white" />
+                    Paid
+                  </dt>
+                  <dd className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight">
+                    {paid.amounts.map(({ currency, amount }) => (
+                      <span key={currency} className="block text-lg">
+                        {formatCurrencyAmount(amount, currency, "code")}
+                      </span>
+                    ))}
+                  </dd>
+                  <dd className="mt-0.5 text-sm tabular-nums text-blue-100">
+                    {paid.count} invoices, {paidPercent}% of invoices
+                  </dd>
+                </div>
+                <div>
+                  <dt className="flex items-center gap-2 text-sm font-medium text-blue-100">
+                    <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+                    Unpaid
+                  </dt>
+                  <dd className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight">
+                    {unpaid.amounts.map(({ currency, amount }) => (
+                      <span key={currency} className="block text-lg">
+                        {formatCurrencyAmount(amount, currency, "code")}
+                      </span>
+                    ))}
+                  </dd>
+                  <dd className="mt-0.5 text-sm tabular-nums text-blue-100">
+                    {unpaid.count} invoices, {unpaidPercent}% of invoices
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </section>
+
+          {/* Status cards: each one opens the matching invoice list */}
+          <div className="grid gap-4 md:grid-cols-2 lg:gap-6">
+            {statuses.map((s) => (
+              <Link
+                key={s.label}
+                href={s.href}
+                className="group flex flex-col rounded-3xl border border-neutral-200 bg-white p-7 transition-colors hover:border-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${s.tile}`}
+                  >
+                    <Icon>{s.icon}</Icon>
+                  </span>
+                  <h2 className="text-sm font-medium text-neutral-600">
+                    {s.label}
+                  </h2>
+                </div>
+
+                <div className="mt-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+                  <div>
+                    <p className="text-2xl font-semibold tabular-nums tracking-tight text-neutral-950">
+                      {s.amounts.map(({ currency, amount }) => (
+                        <span key={currency} className="block text-base">
+                          {formatCurrencyAmount(amount, currency, "code")}
+                        </span>
+                      ))}
+                    </p>
+                    <p className="mt-1 text-sm text-neutral-500">{s.note}</p>
+                  </div>
+                  <p className="flex items-baseline gap-2">
+                    <span className="text-3xl font-semibold tabular-nums tracking-tighter text-neutral-950">
+                      {s.count}
+                    </span>
+                    <span className="text-sm text-neutral-500">invoices</span>
+                  </p>
+                </div>
+
+                <span className="mt-7 inline-flex items-center gap-1 border-t border-neutral-100 pt-5 text-sm font-medium text-blue-600 group-hover:text-blue-700">
+                  {s.cta}
+                  <Icon className="h-4 w-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none">
+                    <path d="m9 6 6 6-6 6" />
+                  </Icon>
+                </span>
+              </Link>
+            ))}
+          </div>
+
+          {/* A little information */}
+          <div className="flex items-start gap-3.5 rounded-2xl bg-neutral-50 p-5">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 ring-1 ring-neutral-200">
+              <Icon className="h-4 w-4">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 11v5M12 8h.01" />
               </Icon>
             </span>
-          </Link>
-        ))}
-      </div>
-
-      {/* A little information */}
-      <div className="flex items-start gap-3.5 rounded-2xl bg-neutral-50 p-5">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 ring-1 ring-neutral-200">
-          <Icon className="h-4 w-4">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 11v5M12 8h.01" />
-          </Icon>
-        </span>
-        <p className="text-sm leading-6 text-neutral-600">
-          <span className="font-medium text-neutral-950">Good to know: </span>
-          unpaid invoices are ones you have sent that have not been paid yet.
-          Reminders go out automatically before and after the due date, so you
-          do not have to chase them.
-        </p>
-      </div>
+            <p className="text-sm leading-6 text-neutral-600">
+              <span className="font-medium text-neutral-950">
+                Good to know:{" "}
+              </span>
+              unpaid invoices are ones you have sent that have not been paid
+              yet. Reminders go out automatically before and after the due date,
+              so you do not have to chase them.
+            </p>
+          </div>
         </>
       )}
     </div>
   );
-};
+}

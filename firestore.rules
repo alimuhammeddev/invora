@@ -37,6 +37,29 @@ service cloud.firestore {
             && request.resource.data.accountStatus == 'active')
         );
 
+      match /notifications/{notificationId} {
+        allow read: if ownsAccount(userId) && accountIsActive(userId);
+        allow create: if ownsAccount(userId)
+          && accountIsActive(userId)
+          && request.resource.data.keys().hasOnly([
+            'type', 'title', 'message', 'invoiceId', 'invoiceNumber', 'read', 'createdAt'
+          ])
+          && request.resource.data.type in [
+            'invoice_created', 'invoice_paid', 'invoice_overdue'
+          ]
+          && request.resource.data.title is string
+          && request.resource.data.message is string
+          && request.resource.data.invoiceId is string
+          && request.resource.data.invoiceNumber is string
+          && request.resource.data.read == false
+          && request.resource.data.createdAt == request.time;
+        allow update: if ownsAccount(userId)
+          && accountIsActive(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+          && request.resource.data.read == true;
+        allow delete: if false;
+      }
+
       match /invoices/{invoiceId} {
         allow read, delete: if ownsAccount(userId) && accountIsActive(userId);
         allow create: if ownsAccount(userId)

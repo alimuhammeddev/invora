@@ -13,6 +13,8 @@ import {
   type ReactNode,
 } from "react";
 import { firebaseAuth } from "../../lib/firebase";
+import { subscribeToUserInvoices } from "../../lib/invoices";
+import { subscribeToUserNotifications } from "../../lib/notifications";
 import { isAccountDeleted } from "../../lib/userAccount";
 import { useToast } from "../components/ToastProvider";
 
@@ -273,13 +275,21 @@ export default function DashboardLayout({
     name: "Account",
     email: "",
   });
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const auth = firebaseAuth;
     if (!auth) return;
 
     let active = true;
+    let currentUserId: string | null = null;
+    let unsubscribeInvoices: (() => void) | undefined;
+    let unsubscribeNotifications: (() => void) | undefined;
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      unsubscribeInvoices?.();
+      unsubscribeNotifications?.();
+      currentUserId = firebaseUser?.uid ?? null;
+      setUnreadNotificationCount(0);
       if (!firebaseUser) {
         setUser({ name: "Account", email: "" });
         return;
@@ -297,18 +307,37 @@ export default function DashboardLayout({
           return;
         }
 
-        if (!active) return;
+        if (!active || currentUserId !== firebaseUser.uid) return;
         const email = firebaseUser.email ?? "";
         const emailName = email.split("@")[0]?.replace(/[._-]+/g, " ") ?? "";
         setUser({
           name: firebaseUser.displayName?.trim() || emailName || "Account",
           email,
         });
+        unsubscribeInvoices = subscribeToUserInvoices(
+          firebaseUser.uid,
+          () => undefined,
+          () => undefined,
+        );
+        unsubscribeNotifications = subscribeToUserNotifications(
+          firebaseUser.uid,
+          (notifications) => {
+            if (active && currentUserId === firebaseUser.uid) {
+              setUnreadNotificationCount(
+                notifications.filter((notification) => !notification.read)
+                  .length,
+              );
+            }
+          },
+          () => setUnreadNotificationCount(0),
+        );
       })();
     });
 
     return () => {
       active = false;
+      unsubscribeInvoices?.();
+      unsubscribeNotifications?.();
       unsubscribe();
     };
   }, [router]);
@@ -412,14 +441,24 @@ export default function DashboardLayout({
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             {/* Notifications */}
-            <button
-              type="button"
-              aria-label="Notifications"
+            <Link
+              href="/dashboard/notifications-page"
+              aria-label={
+                unreadNotificationCount
+                  ? `Notifications, ${unreadNotificationCount} unread`
+                  : "Notifications"
+              }
               className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
               <BellIcon />
-              <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-blue-600 ring-2 ring-white" />
-            </button>
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-white">
+                  {unreadNotificationCount > 99
+                    ? "99+"
+                    : unreadNotificationCount}
+                </span>
+              )}
+            </Link>
 
             <span
               aria-hidden="true"

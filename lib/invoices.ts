@@ -1,15 +1,15 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
   onSnapshot,
+  runTransaction,
   serverTimestamp,
-  updateDoc,
   writeBatch,
   type Timestamp,
 } from "firebase/firestore";
 import { firebaseDb, firebaseSetupMessage } from "./firebase";
+import { userNotificationsCollection } from "./notifications";
 
 export type InvoiceStatus = "paid" | "unpaid" | "overdue";
 
@@ -75,7 +75,7 @@ export function subscribeToUserInvoices(
       for (const invoiceDocument of snapshot.docs) {
         const invoice = invoiceDocument.data() as Omit<InvoiceRecord, "id">;
         if (invoice.status === "unpaid" && invoice.dueOn < today) {
-          void updateDoc(invoiceDocument.ref, { status: "overdue" }).catch(
+          void markUserInvoiceOverdue(userId, invoiceDocument.id, today).catch(
             onError,
           );
         }
@@ -96,12 +96,27 @@ export async function createUserInvoice(
   userId: string,
   invoice: NewInvoiceRecord,
 ) {
-  const document = await addDoc(userInvoicesCollection(userId), {
+  if (!firebaseDb) throw new Error(firebaseSetupMessage);
+
+  const invoiceReference = doc(userInvoicesCollection(userId));
+  const notificationReference = doc(userNotificationsCollection(userId));
+  const batch = writeBatch(firebaseDb);
+  batch.set(invoiceReference, {
     ...invoice,
     status: "unpaid",
     createdAt: serverTimestamp(),
   });
-  return document.id;
+  batch.set(notificationReference, {
+    type: "invoice_created",
+    title: "Invoice created",
+    message: `Invoice ${invoice.invoiceNumber} was created.`,
+    invoiceId: invoiceReference.id,
+    invoiceNumber: invoice.invoiceNumber,
+    read: false,
+    createdAt: serverTimestamp(),
+  });
+  await batch.commit();
+  return invoiceReference.id;
 }
 
 export async function createPublicInvoiceShare(
@@ -165,16 +180,88 @@ export async function updateUserInvoiceStatus(
     "invoices",
     invoiceId,
   );
-  const invoiceSnapshot = await getDoc(invoiceReference);
-  const batch = writeBatch(firebaseDb);
-  batch.update(invoiceReference, { status });
+  const notificationReference = doc(
+    userNotificationsCollection(userId),
+    `invoice-paid-${invoiceId}`,
+  );
 
-  const shareId = invoiceSnapshot.data()?.shareId;
-  if (typeof shareId === "string") {
-    batch.update(doc(firebaseDb, "publicInvoices", shareId), {
-      "invoice.status": status,
+  await runTransaction(firebaseDb, async (transaction) => {
+    const invoiceSnapshot = await transaction.get(invoiceReference);
+    if (!invoiceSnapshot.exists()) return;
+
+    const invoice = invoiceSnapshot.data() as Omit<InvoiceRecord, "id">;
+    if (invoice.status === "paid") return;
+
+    const publicInvoiceReference = invoice.shareId
+      ? doc(firebaseDb, "publicInvoices", invoice.shareId)
+      : null;
+    const publicInvoiceSnapshot = publicInvoiceReference
+      ? await transaction.get(publicInvoiceReference)
+      : null;
+
+    transaction.update(invoiceReference, { status });
+    transaction.set(notificationReference, {
+      type: "invoice_paid",
+      title: "Invoice marked paid",
+      message: `Invoice ${invoice.invoiceNumber} was marked as paid.`,
+      invoiceId,
+      invoiceNumber: invoice.invoiceNumber,
+      read: false,
+      createdAt: serverTimestamp(),
     });
-  }
+    if (publicInvoiceReference && publicInvoiceSnapshot?.exists()) {
+      transaction.update(publicInvoiceReference, { "invoice.status": status });
+    }
+  });
+}
 
-  await batch.commit();
+async function markUserInvoiceOverdue(
+  userId: string,
+  invoiceId: string,
+  today: string,
+) {
+  if (!firebaseDb) throw new Error(firebaseSetupMessage);
+
+  const invoiceReference = doc(
+    firebaseDb,
+    "users",
+    userId,
+    "invoices",
+    invoiceId,
+  );
+  const notificationReference = doc(
+    userNotificationsCollection(userId),
+    `invoice-overdue-${invoiceId}`,
+  );
+
+  await runTransaction(firebaseDb, async (transaction) => {
+    const invoiceSnapshot = await transaction.get(invoiceReference);
+    if (!invoiceSnapshot.exists()) return;
+
+    const invoice = invoiceSnapshot.data() as Omit<InvoiceRecord, "id">;
+    if (invoice.status !== "unpaid" || invoice.dueOn >= today) return;
+
+    const publicInvoiceReference = invoice.shareId
+      ? doc(firebaseDb, "publicInvoices", invoice.shareId)
+      : null;
+    const publicInvoiceSnapshot = publicInvoiceReference
+      ? await transaction.get(publicInvoiceReference)
+      : null;
+
+    transaction.update(invoiceReference, { status: "overdue" });
+    transaction.set(notificationReference, {
+      type: "invoice_overdue",
+      title: "Invoice overdue",
+      message: `Invoice ${invoice.invoiceNumber} is now overdue.`,
+      invoiceId,
+      invoiceNumber: invoice.invoiceNumber,
+      read: false,
+      createdAt: serverTimestamp(),
+    });
+    if (publicInvoiceReference && publicInvoiceSnapshot?.exists()) {
+      transaction.update(publicInvoiceReference, {
+        "invoice.status": "overdue",
+      });
+    }
+  });
 }

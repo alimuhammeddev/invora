@@ -7,6 +7,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { ArrowLeft, Check, Copy, Download } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { formatCurrencyAmount } from "../../../../lib/currency";
 import { firebaseAuth, firebaseSetupMessage } from "../../../../lib/firebase";
 import {
   createPublicInvoiceShare,
@@ -15,7 +16,6 @@ import {
   type InvoiceRecord,
 } from "../../../../lib/invoices";
 
-const money = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
 const date = (value: string) =>
   new Intl.DateTimeFormat("en-NG", {
     day: "numeric",
@@ -298,10 +298,13 @@ export default function InvoiceDetailsPage() {
                     {item.quantity}
                   </td>
                   <td className="px-2 py-4 text-right tabular-nums text-neutral-600">
-                    {money(item.price)}
+                    {formatCurrencyAmount(item.price, invoice.currency)}
                   </td>
                   <td className="py-4 text-right font-medium tabular-nums text-neutral-900">
-                    {money(item.quantity * item.price)}
+                    {formatCurrencyAmount(
+                      item.quantity * item.price,
+                      invoice.currency,
+                    )}
                   </td>
                 </tr>
               ))}
@@ -311,16 +314,16 @@ export default function InvoiceDetailsPage() {
           <div className="ml-auto mt-6 max-w-xs space-y-3 border-t border-neutral-200 pt-4 text-sm">
             <div className="flex justify-between text-neutral-500">
               <span>Subtotal</span>
-              <span>{money(invoice.subtotal)}</span>
+              <span>{formatCurrencyAmount(invoice.subtotal, invoice.currency)}</span>
             </div>
             <div className="flex justify-between text-neutral-500">
               <span>Tax</span>
-              <span>{money(invoice.tax)}</span>
+              <span>{formatCurrencyAmount(invoice.tax, invoice.currency)}</span>
             </div>
             <div className="flex items-baseline justify-between border-t border-neutral-300 pt-3 font-semibold text-neutral-950">
               <span>Total</span>
               <span className="font-serif text-3xl">
-                {money(invoice.amount)}
+                {formatCurrencyAmount(invoice.amount, invoice.currency)}
               </span>
             </div>
           </div>

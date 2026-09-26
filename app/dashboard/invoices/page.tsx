@@ -5,6 +5,7 @@ import { FirebaseError } from "firebase/app";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import NewInvoiceModal from "./components/NewInvoiceModal";
+import { formatCurrencyAmount } from "../../../lib/currency";
 import { firebaseAuth, firebaseSetupMessage } from "../../../lib/firebase";
 import {
   createUserInvoice,
@@ -15,8 +16,6 @@ import {
 type Status = InvoiceRecord["status"];
 type Invoice = InvoiceRecord;
 
-const money = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
-
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
@@ -24,7 +23,8 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 
 const formatDate = (iso: string) => dateFormatter.format(new Date(iso));
 
-const formatAmount = (invoice: Invoice) => money(invoice.amount);
+const formatAmount = (invoice: Invoice) =>
+  formatCurrencyAmount(invoice.amount, invoice.currency);
 
 function generateInvoiceNumber(invoices: Invoice[]) {
   const existingNumbers = new Set(

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FirebaseError } from "firebase/app";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState, type ReactNode } from "react";
+import { formatCurrencyAmount } from "../../lib/currency";
 import { firebaseAuth, firebaseSetupMessage } from "../../lib/firebase";
 import {
   subscribeToUserInvoices,
@@ -49,7 +50,22 @@ const CheckPaths = (
   </>
 );
 
-const money = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
+function summarizeAmounts(
+  invoices: InvoiceRecord[],
+  currencies = invoices,
+) {
+  const totals = new Map(
+    currencies.map((invoice) => [invoice.currency, 0] as const),
+  );
+  for (const invoice of invoices) {
+    totals.set(
+      invoice.currency,
+      (totals.get(invoice.currency) ?? 0) + invoice.amount,
+    );
+  }
+
+  return [...totals].map(([currency, amount]) => ({ currency, amount }));
+}
 
 /* ---------- Page ---------- */
 
@@ -105,18 +121,18 @@ export default function Dashboard() {
   const unpaidInvoices = invoices.filter((invoice) => invoice.status !== "paid");
   const paid = {
     count: paidInvoices.length,
-    amount: paidInvoices.reduce((sum, invoice) => sum + invoice.amount, 0),
+    amounts: summarizeAmounts(paidInvoices, invoices),
   };
   const unpaid = {
     count: unpaidInvoices.length,
-    amount: unpaidInvoices.reduce((sum, invoice) => sum + invoice.amount, 0),
+    amounts: summarizeAmounts(unpaidInvoices, invoices),
   };
   const total = {
     count: invoices.length,
-    amount: paid.amount + unpaid.amount,
+    amounts: summarizeAmounts(invoices),
   };
-  const paidPercent = total.amount
-    ? Math.round((paid.amount / total.amount) * 100)
+  const paidPercent = total.count
+    ? Math.round((paid.count / total.count) * 100)
     : 0;
   const unpaidPercent = 100 - paidPercent;
   const statuses = [
@@ -124,7 +140,7 @@ export default function Dashboard() {
       label: "Unpaid invoices",
       note: "Waiting to be paid",
       count: unpaid.count,
-      amount: unpaid.amount,
+      amounts: unpaid.amounts,
       href: "/dashboard/invoices?status=unpaid",
       cta: "View unpaid invoices",
       icon: ClockPaths,
@@ -134,7 +150,7 @@ export default function Dashboard() {
       label: "Paid invoices",
       note: "Received so far",
       count: paid.count,
-      amount: paid.amount,
+      amounts: paid.amounts,
       href: "/dashboard/invoices?status=paid",
       cta: "View paid invoices",
       icon: CheckPaths,
@@ -214,7 +230,11 @@ export default function Dashboard() {
               Total invoiced
             </h2>
             <p className="mt-3 text-5xl font-semibold tabular-nums tracking-tighter sm:text-7xl">
-              {money(total.amount)}
+              {total.amounts.map(({ currency, amount }) => (
+                <span key={currency} className="block text-4xl sm:text-5xl">
+                  {formatCurrencyAmount(amount, currency, "code")}
+                </span>
+              ))}
             </p>
             <p className="mt-3 text-base text-blue-100">
               across {total.count} invoices
@@ -225,7 +245,7 @@ export default function Dashboard() {
             <p className="text-3xl font-semibold tabular-nums tracking-tight">
               {paidPercent}%
             </p>
-            <p className="mt-0.5 text-sm text-blue-100">collected so far</p>
+            <p className="mt-0.5 text-sm text-blue-100">invoices paid</p>
           </div>
         </div>
 
@@ -233,15 +253,15 @@ export default function Dashboard() {
         <div className="mt-10">
           <div
             role="img"
-            aria-label={`${paidPercent}% of the total amount is paid and ${unpaidPercent}% is unpaid`}
+            aria-label={`${paidPercent}% of invoices are paid and ${unpaidPercent}% are unpaid`}
             className="flex h-4 gap-1"
           >
             <div
-              style={{ flex: `${paid.amount || 1} 1 0%` }}
+              style={{ flex: `${paid.count || 1} 1 0%` }}
               className="rounded-full bg-white"
             />
             <div
-              style={{ flex: `${unpaid.amount || 1} 1 0%` }}
+              style={{ flex: `${unpaid.count || 1} 1 0%` }}
               className="rounded-full bg-amber-300"
             />
           </div>
@@ -253,10 +273,14 @@ export default function Dashboard() {
                 Paid
               </dt>
               <dd className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight">
-                {money(paid.amount)}
+                {paid.amounts.map(({ currency, amount }) => (
+                  <span key={currency} className="block text-lg">
+                    {formatCurrencyAmount(amount, currency, "code")}
+                  </span>
+                ))}
               </dd>
               <dd className="mt-0.5 text-sm tabular-nums text-blue-100">
-                {paid.count} invoices, {paidPercent}% of the total
+                {paid.count} invoices, {paidPercent}% of invoices
               </dd>
             </div>
             <div>
@@ -265,10 +289,14 @@ export default function Dashboard() {
                 Unpaid
               </dt>
               <dd className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight">
-                {money(unpaid.amount)}
+                {unpaid.amounts.map(({ currency, amount }) => (
+                  <span key={currency} className="block text-lg">
+                    {formatCurrencyAmount(amount, currency, "code")}
+                  </span>
+                ))}
               </dd>
               <dd className="mt-0.5 text-sm tabular-nums text-blue-100">
-                {unpaid.count} invoices, {unpaidPercent}% of the total
+                {unpaid.count} invoices, {unpaidPercent}% of invoices
               </dd>
             </div>
           </dl>
@@ -297,7 +325,11 @@ export default function Dashboard() {
             <div className="mt-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
               <div>
                 <p className="text-2xl font-semibold tabular-nums tracking-tight text-neutral-950">
-                  {money(s.amount)}
+                  {s.amounts.map(({ currency, amount }) => (
+                    <span key={currency} className="block text-base">
+                      {formatCurrencyAmount(amount, currency, "code")}
+                    </span>
+                  ))}
                 </p>
                 <p className="mt-1 text-sm text-neutral-500">{s.note}</p>
               </div>

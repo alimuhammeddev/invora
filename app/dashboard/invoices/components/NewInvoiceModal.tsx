@@ -2,6 +2,11 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  currencyFractionDigits,
+  currencyOptions,
+  formatCurrencyAmount,
+} from "../../../../lib/currency";
 import type { NewInvoiceRecord } from "../../../../lib/invoices";
 
 type LineItem = {
@@ -21,8 +26,6 @@ type NewInvoiceModalProps = {
 
 const fieldClassName =
   "mt-1.5 h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
-
-const formatNaira = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
 
 async function compressLogo(file: File) {
   if (file.size > 8 * 1024 * 1024) {
@@ -74,6 +77,9 @@ export default function NewInvoiceModal({
   const [dueOn, setDueOn] = useState("");
   const [bank, setBank] = useState("");
   const [account, setAccount] = useState("");
+  const [currency, setCurrency] = useState("NGN");
+  const [currencyQuery, setCurrencyQuery] = useState("");
+  const [currencyOpen, setCurrencyOpen] = useState(false);
   const [tax, setTax] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -100,6 +106,9 @@ export default function NewInvoiceModal({
     setDueOn("");
     setBank("");
     setAccount("");
+    setCurrency("NGN");
+    setCurrencyQuery("");
+    setCurrencyOpen(false);
     setTax("");
     setSaveError(null);
     setItems([
@@ -153,6 +162,13 @@ export default function NewInvoiceModal({
   );
   const taxAmount = Number(tax) || 0;
   const total = subtotal + taxAmount;
+  const fractionDigits = currencyFractionDigits(currency);
+  const amountPattern = `[0-9]+([.][0-9]{0,${fractionDigits}})?`;
+  const filteredCurrencies = currencyOptions.filter(({ code, name }) =>
+    `${code} ${name}`
+      .toLowerCase()
+      .includes(currencyQuery.trim().toLowerCase()),
+  );
 
   const updateItem = (id: number, changes: Partial<LineItem>) => {
     setItems((current) =>
@@ -199,7 +215,7 @@ export default function NewInvoiceModal({
         subtotal,
         tax: taxAmount,
         amount: total,
-        currency: "NGN",
+        currency,
         bank: bank.trim(),
         account: account.trim(),
       });
@@ -370,6 +386,78 @@ export default function NewInvoiceModal({
                     required
                   />
                 </label>
+                <div
+                  className="relative block text-xs font-medium text-neutral-600 sm:col-span-2 lg:col-span-1 xl:col-span-2"
+                  onBlur={(event) => {
+                    if (
+                      !event.currentTarget.contains(
+                        event.relatedTarget as Node | null,
+                      )
+                    ) {
+                      setCurrencyOpen(false);
+                    }
+                  }}
+                >
+                  <label htmlFor="invoice-currency">Currency</label>
+                  <input
+                    id="invoice-currency"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded={currencyOpen}
+                    aria-controls="invoice-currency-options"
+                    autoComplete="off"
+                    value={
+                      currencyOpen
+                        ? currencyQuery
+                        : `${currency} — ${currencyOptions.find((option) => option.code === currency)?.name ?? currency}`
+                    }
+                    onFocus={() => {
+                      setCurrencyQuery("");
+                      setCurrencyOpen(true);
+                    }}
+                    onChange={(event) => {
+                      setCurrencyQuery(event.target.value);
+                      setCurrencyOpen(true);
+                    }}
+                    placeholder="Search currencies"
+                    className={fieldClassName}
+                    required
+                  />
+                  {currencyOpen && (
+                    <div
+                      id="invoice-currency-options"
+                      role="listbox"
+                      aria-label="Currencies"
+                      className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-neutral-200 bg-white py-1 shadow-lg"
+                    >
+                      {filteredCurrencies.length ? (
+                        filteredCurrencies.map((option) => (
+                          <button
+                            key={option.code}
+                            type="button"
+                            role="option"
+                            aria-selected={currency === option.code}
+                            onClick={() => {
+                              setCurrency(option.code);
+                              setCurrencyQuery("");
+                              setCurrencyOpen(false);
+                            }}
+                            className="flex min-h-9 w-full items-center justify-between gap-3 px-3 py-1.5 text-left text-sm font-normal text-neutral-700 hover:bg-blue-50 aria-selected:bg-blue-50 aria-selected:text-blue-800"
+                          >
+                            <span>{option.name}</span>
+                            <span className="shrink-0 text-xs text-neutral-400">
+                              {option.code}
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-3 py-2 text-sm font-normal text-neutral-500">
+                          No currencies found
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -427,11 +515,11 @@ export default function NewInvoiceModal({
                         />
                       </label>
                       <label className="block text-[11px] font-medium text-neutral-500">
-                        Price (₦)
+                        Price ({currency})
                         <input
                           type="text"
                           inputMode="decimal"
-                          pattern="[0-9]+([.][0-9]{0,2})?"
+                          pattern={amountPattern}
                           value={item.priceInput}
                           onChange={(event) => {
                             const cleaned = event.target.value.replace(
@@ -445,7 +533,7 @@ export default function NewInvoiceModal({
                                 : `${cleaned.slice(0, decimalIndex)}.${cleaned
                                     .slice(decimalIndex + 1)
                                     .replace(/\./g, "")
-                                    .slice(0, 2)}`;
+                                    .slice(0, fractionDigits)}`;
                             const priceInput = normalized.startsWith(".")
                               ? `0${normalized}`
                               : normalized;
@@ -507,11 +595,11 @@ export default function NewInvoiceModal({
                   />
                 </label>
                 <label className="block text-xs font-medium text-neutral-600 sm:col-span-2 lg:col-span-1 xl:col-span-2">
-                  Tax (₦)
+                  Tax ({currency})
                   <input
                     type="text"
                     inputMode="decimal"
-                    pattern="[0-9]+([.][0-9]{0,2})?"
+                    pattern={amountPattern}
                     value={tax}
                     onChange={(event) => {
                       const cleaned = event.target.value.replace(/[^\d.]/g, "");
@@ -522,7 +610,7 @@ export default function NewInvoiceModal({
                           : `${cleaned.slice(0, decimalIndex)}.${cleaned
                               .slice(decimalIndex + 1)
                               .replace(/\./g, "")
-                              .slice(0, 2)}`;
+                              .slice(0, fractionDigits)}`;
                       setTax(
                         normalized.startsWith(".")
                           ? `0${normalized}`
@@ -654,11 +742,16 @@ export default function NewInvoiceModal({
                             {item.quantity || ""}
                           </td>
                           <td className="px-1 py-3 text-right tabular-nums text-neutral-600">
-                            {item.priceInput ? formatNaira(item.price) : ""}
+                            {item.priceInput
+                              ? formatCurrencyAmount(item.price, currency)
+                              : ""}
                           </td>
                           <td className="py-3 text-right font-medium tabular-nums text-neutral-900">
                             {item.quantity && item.priceInput
-                              ? formatNaira(item.quantity * item.price)
+                              ? formatCurrencyAmount(
+                                  item.quantity * item.price,
+                                  currency,
+                                )
                               : ""}
                           </td>
                         </tr>
@@ -669,16 +762,16 @@ export default function NewInvoiceModal({
                   <div className="ml-auto mt-4 max-w-56 space-y-2 border-t border-neutral-200 pt-3 text-[10px]">
                     <div className="flex justify-between gap-3 text-neutral-500">
                       <span>Subtotal</span>
-                      <span>{formatNaira(subtotal)}</span>
+                      <span>{formatCurrencyAmount(subtotal, currency)}</span>
                     </div>
                     <div className="flex justify-between gap-3 text-neutral-500">
                       <span>Tax</span>
-                      <span>{formatNaira(taxAmount)}</span>
+                      <span>{formatCurrencyAmount(taxAmount, currency)}</span>
                     </div>
                     <div className="flex items-baseline justify-between border-t border-neutral-300 pt-2 font-semibold text-neutral-950">
                       <span>Total</span>
                       <span className="font-serif text-xl tabular-nums">
-                        {formatNaira(total)}
+                        {formatCurrencyAmount(total, currency)}
                       </span>
                     </div>
                   </div>

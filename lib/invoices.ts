@@ -34,7 +34,7 @@ export type InvoiceRecord = {
   subtotal: number;
   tax: number;
   amount: number;
-  currency: "NGN";
+  currency: string;
   bank: string;
   account: string;
   status: InvoiceStatus;

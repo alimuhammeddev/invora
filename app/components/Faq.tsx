@@ -61,6 +61,7 @@ export default function FAQ() {
 
   return (
     <section
+      id="faq"
       aria-labelledby="faq-heading"
       className="relative overflow-hidden bg-white"
     >

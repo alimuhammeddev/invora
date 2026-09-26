@@ -14,9 +14,25 @@ const links = [
 // Premium easing shared by all menu transitions
 const EASE = "cubic-bezier(0.16,1,0.3,1)";
 
+// Offset accounts for the fixed nav pill height + spacing
+const SCROLL_OFFSET = 96;
+
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  const handleAnchorClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string
+  ) => {
+    if (!href.startsWith("#")) return;
+    const target = document.querySelector(href);
+    if (!target) return;
+    e.preventDefault();
+    const top =
+      target.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
+    window.scrollTo({ top, behavior: "smooth" });
+  };
 
   // Scroll awareness
   useEffect(() => {
@@ -73,6 +89,7 @@ export default function Navbar() {
                 <Link
                   key={href}
                   href={href}
+                  onClick={(e) => handleAnchorClick(e, href)}
                   className="rounded-full px-4 py-1.5 text-sm font-medium text-gray-500 transition-all duration-200 hover:text-blue-600"
                 >
                   {label}
@@ -143,7 +160,10 @@ export default function Navbar() {
               <Link
                 key={href}
                 href={href}
-                onClick={() => setIsOpen(false)}
+                onClick={(e) => {
+                  setIsOpen(false);
+                  handleAnchorClick(e, href);
+                }}
                 style={{ transitionDelay: isOpen ? `${160 + i * 60}ms` : "0ms" }}
                 className={`group flex items-baseline gap-4 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                   isOpen

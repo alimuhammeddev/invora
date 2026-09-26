@@ -31,7 +31,7 @@ export default function Footer() {
         {/* Closing call to action */}
         <div className="flex flex-col items-start justify-between gap-8 border-b border-slate-200 pb-16 md:flex-row md:items-center">
           <div className="max-w-xl">
-            <h2 className="text-xl font-semibold leading-tight tracking-[-0.03em] text-slate-950 md:text-3xl">
+            <h2 className="text-2xl font-semibold leading-tight tracking-[-0.03em] text-slate-950 md:text-4xl">
               Ready to get <span className="text-blue-600">paid faster?</span>
             </h2>
             <p className="mt-3 md:text-lg text-base leading-8 text-slate-600">

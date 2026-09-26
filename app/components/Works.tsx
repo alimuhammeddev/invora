@@ -62,7 +62,7 @@ export default function Works() {
             From blank page to <span className="text-blue-600">paid</span> in
             three steps
           </h2>
-          <p className="mt-5 max-w-md text-lg leading-8 text-slate-600">
+          <p className="mt-5 max-w-md md:text-lg text-base leading-8 text-slate-600">
             No setup headaches and no learning curve. Start sending invoices the
             same day you sign up.
           </p>

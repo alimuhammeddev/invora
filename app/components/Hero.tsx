@@ -32,7 +32,7 @@ export default function Hero() {
       <div className="relative mx-auto flex min-h-[calc(100vh-80px)] max-w-7xl items-center justify-center px-6 md:py-24 py-36 lg:px-8">
         <div className="text-center">
           {/* Badge */}
-          <div className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-blue-100 bg-white/80 px-4 py-1.5 text-sm font-medium text-blue-600">
+          <div className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-blue-100 bg-white/80 px-4 py-1.5 md:text-sm text-xs font-medium text-blue-600">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-60 motion-reduce:animate-none" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-600" />

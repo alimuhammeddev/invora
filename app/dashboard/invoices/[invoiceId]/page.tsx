@@ -36,6 +36,7 @@ export default function InvoiceDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [savingStatus, setSavingStatus] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [linkCopyError, setLinkCopyError] = useState<string | null>(null);
   const [linkCopyStatus, setLinkCopyStatus] = useState<
     "idle" | "creating" | "copied" | "error"
   >("idle");
@@ -105,6 +106,7 @@ export default function InvoiceDetailsPage() {
     if (!invoice || !userId) return;
 
     try {
+      setLinkCopyError(null);
       setLinkCopyStatus("creating");
       const shareId = await createPublicInvoiceShare(userId, invoice);
       setInvoice({ ...invoice, shareId });
@@ -114,8 +116,18 @@ export default function InvoiceDetailsPage() {
       );
       await navigator.clipboard.writeText(invoiceUrl.toString());
       setLinkCopyStatus("copied");
-    } catch {
+    } catch (error) {
       setLinkCopyStatus("error");
+      if (
+        error instanceof FirebaseError &&
+        error.code === "permission-denied"
+      ) {
+        setLinkCopyError(
+          "Firestore blocked link sharing. Publish the latest firestore.rules in Firebase Console, then try again.",
+        );
+      } else {
+        setLinkCopyError("Could not create or copy the link. Please try again.");
+      }
     }
   }
 
@@ -158,6 +170,11 @@ export default function InvoiceDetailsPage() {
                   ? "Copy failed"
                   : "Copy invoice link"}
             </button>
+            {linkCopyError && (
+              <p role="alert" className="basis-full text-sm text-rose-700">
+                {linkCopyError}
+              </p>
+            )}
             {invoice.status !== "paid" && (
               <button
                 type="button"

@@ -136,7 +136,7 @@ export async function createPublicInvoiceShare(
   batch.update(doc(firebaseDb, "users", userId, "invoices", invoice.id), {
     shareId: shareReference.id,
   });
-  batch.set(shareReference, { ownerUid: userId, invoice: publicInvoice });
+  batch.set(shareReference, { invoice: publicInvoice });
   await batch.commit();
 
   return shareReference.id;

@@ -54,7 +54,7 @@ function summarizeAmounts(
   invoices: InvoiceRecord[],
   currencies = invoices,
 ) {
-  const totals = new Map(
+  const totals = new Map<string, number>(
     currencies.map((invoice) => [invoice.currency, 0] as const),
   );
   for (const invoice of invoices) {

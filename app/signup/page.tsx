@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
+import { useToast } from "../components/ToastProvider";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
@@ -150,6 +151,7 @@ const iconStyles =
 
 export default function Signup() {
   const router = useRouter();
+  const showToast = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -178,6 +180,7 @@ export default function Signup() {
       );
       await updateProfile(credential.user, { displayName: name });
       await activateUserAccount(credential.user, name);
+      showToast("Your account is ready");
       router.replace("/dashboard");
     } catch (authError) {
       if (
@@ -195,6 +198,7 @@ export default function Signup() {
           if (await isAccountDeleted(credential.user.uid)) {
             await activateUserAccount(credential.user, name);
             await updateProfile(credential.user, { displayName: name });
+            showToast("Your account has been restored");
             router.replace("/dashboard");
           } else {
             await signOut(firebaseAuth);
@@ -226,6 +230,7 @@ export default function Signup() {
         new GoogleAuthProvider(),
       );
       await activateUserAccount(credential.user);
+      showToast("Signup Successfully");
       router.replace("/dashboard");
     } catch (authError) {
       setError(getFirebaseAuthErrorMessage(authError));

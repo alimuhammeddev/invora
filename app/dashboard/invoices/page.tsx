@@ -5,6 +5,7 @@ import { FirebaseError } from "firebase/app";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import NewInvoiceModal from "./components/NewInvoiceModal";
+import { useToast } from "../../components/ToastProvider";
 import { formatCurrencyAmount } from "../../../lib/currency";
 import { firebaseAuth, firebaseSetupMessage } from "../../../lib/firebase";
 import {
@@ -126,6 +127,7 @@ const filters: { key: "all" | Status; label: string }[] = [
 /* ---------- Page ---------- */
 
 export default function Invoices() {
+  const showToast = useToast();
   const [filter, setFilter] = useState<(typeof filters)[number]["key"]>("all");
   const [query, setQuery] = useState("");
   const [invoiceList, setInvoiceList] = useState<Invoice[]>([]);
@@ -440,6 +442,7 @@ export default function Invoices() {
         onClose={() => setNewInvoiceOpen(false)}
         onCreate={async (draft) => {
           await handleCreateInvoice(draft);
+          showToast("Invoice created successfully");
           setNewInvoiceOpen(false);
         }}
       />

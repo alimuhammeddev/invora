@@ -14,6 +14,7 @@ import {
 } from "react";
 import { firebaseAuth } from "../../lib/firebase";
 import { isAccountDeleted } from "../../lib/userAccount";
+import { useToast } from "../components/ToastProvider";
 
 type DashboardUser = { name: string; email: string };
 
@@ -265,6 +266,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const showToast = useToast();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<DashboardUser>({
@@ -314,6 +316,7 @@ export default function DashboardLayout({
   async function onLogout() {
     if (!firebaseAuth) return;
     await signOut(firebaseAuth);
+    showToast("Logout Successfully");
     router.replace("/login");
   }
 

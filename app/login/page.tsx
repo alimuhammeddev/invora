@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
+import { useToast } from "../components/ToastProvider";
 import {
   browserLocalPersistence,
   browserSessionPersistence,
@@ -151,6 +152,7 @@ const iconStyles =
 
 export default function Login() {
   const router = useRouter();
+  const showToast = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -185,6 +187,7 @@ export default function Login() {
         setError("This account was deleted. Sign up with these credentials to restore your account and invoices.");
         return;
       }
+      showToast("Login Successfully");
       router.replace("/dashboard");
     } catch (authError) {
       setError(
@@ -216,6 +219,7 @@ export default function Login() {
         setError("This account was deleted. Use Sign up with Google to restore your account and invoices.");
         return;
       }
+      showToast("Login Successfully");
       router.replace("/dashboard");
     } catch (authError) {
       setError(

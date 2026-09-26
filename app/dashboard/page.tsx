@@ -195,15 +195,17 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <Link
-          href="/dashboard/invoices"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-        >
-          <Icon className="h-4 w-4">
-            <path d="M12 5v14M5 12h14" />
-          </Icon>
-          New invoice
-        </Link>
+        {(loading || invoices.length > 0) && (
+          <Link
+            href="/dashboard/invoices"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          >
+            <Icon className="h-4 w-4">
+              <path d="M12 5v14M5 12h14" />
+            </Icon>
+            New invoice
+          </Link>
+        )}
       </div>
 
       {loading ? (
@@ -215,28 +217,22 @@ export default function Dashboard() {
           {loadError}
         </p>
       ) : invoices.length === 0 ? (
-        <section className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-neutral-300 bg-white px-6 py-14 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-            <Icon className="h-6 w-6">
-              <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" />
-              <path d="M14 3v5h5M9 13h6M9 17h4" />
-            </Icon>
-          </span>
-          <h2 className="mt-5 text-lg font-semibold text-neutral-950">
-            Your dashboard is ready
+        <section className="flex min-h-72 flex-col items-center justify-center bg-white px-6 py-16 text-center">
+          <h2 className="text-xl font-semibold text-neutral-950 sm:text-2xl">
+            No invoices yet
           </h2>
-          <p className="mt-2 max-w-md text-sm leading-6 text-neutral-500">
-            Create your first invoice to start seeing totals, payment status, and account activity here.
+          <p className="mt-2 max-w-sm text-sm leading-6 text-neutral-500">
+            Create your first invoice to see your balances and payment activity here.
           </p>
-          <Link
-            href="/dashboard/invoices"
-            className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-          >
-            <Icon className="h-4 w-4">
-              <path d="M12 5v14M5 12h14" />
-            </Icon>
-            Create your first invoice
-          </Link>
+            <Link
+              href="/dashboard/invoices"
+              className="mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            >
+              <Icon className="h-4 w-4">
+                <path d="M12 5v14M5 12h14" />
+              </Icon>
+              Create invoice
+            </Link>
         </section>
       ) : (
         <>

@@ -22,12 +22,6 @@ type NewInvoiceModalProps = {
 const fieldClassName =
   "mt-1.5 h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 
-const today = () => {
-  const date = new Date();
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return localDate.toISOString().slice(0, 10);
-};
-
 const formatNaira = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
 
 async function compressLogo(file: File) {
@@ -67,35 +61,22 @@ export default function NewInvoiceModal({
   onClose,
   onCreate,
 }: NewInvoiceModalProps) {
-  const [fromName, setFromName] = useState("Acme Digital");
-  const [fromAddress, setFromAddress] = useState("Lagos, Nigeria");
+  const [fromName, setFromName] = useState("");
+  const [fromAddress, setFromAddress] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [client, setClient] = useState("ABC Limited");
+  const [client, setClient] = useState("");
   const [clientEmail, setClientEmail] = useState("");
-  const [clientAddress, setClientAddress] = useState("Lagos, Nigeria");
-  const [issuedOn, setIssuedOn] = useState(today);
-  const [dueOn, setDueOn] = useState(today);
-  const [bank, setBank] = useState("Example Bank");
-  const [account, setAccount] = useState("1234567890");
-  const [tax, setTax] = useState(0);
+  const [clientAddress, setClientAddress] = useState("");
+  const [issuedOn, setIssuedOn] = useState("");
+  const [dueOn, setDueOn] = useState("");
+  const [bank, setBank] = useState("");
+  const [account, setAccount] = useState("");
+  const [tax, setTax] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [items, setItems] = useState<LineItem[]>([
-    {
-      id: 1,
-      description: "Website Design",
-      quantity: 1,
-      price: 300000,
-      priceInput: "300000",
-    },
-    {
-      id: 2,
-      description: "Hosting",
-      quantity: 1,
-      price: 50000,
-      priceInput: "50000",
-    },
+    { id: 1, description: "", quantity: 0, price: 0, priceInput: "" },
   ]);
   const dialogRef = useRef<HTMLElement>(null);
 
@@ -103,6 +84,24 @@ export default function NewInvoiceModal({
     if (!logoPreview) return;
     return () => URL.revokeObjectURL(logoPreview);
   }, [logoPreview]);
+
+  useEffect(() => {
+    if (!open) return;
+    setFromName("");
+    setFromAddress("");
+    setLogoPreview(null);
+    setLogoFile(null);
+    setClient("");
+    setClientEmail("");
+    setClientAddress("");
+    setIssuedOn("");
+    setDueOn("");
+    setBank("");
+    setAccount("");
+    setTax("");
+    setSaveError(null);
+    setItems([{ id: 1, description: "", quantity: 0, price: 0, priceInput: "" }]);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -149,7 +148,8 @@ export default function NewInvoiceModal({
     (total, item) => total + item.quantity * item.price,
     0,
   );
-  const total = subtotal + tax;
+  const taxAmount = Number(tax) || 0;
+  const total = subtotal + taxAmount;
 
   const updateItem = (id: number, changes: Partial<LineItem>) => {
     setItems((current) =>
@@ -163,7 +163,7 @@ export default function NewInvoiceModal({
       {
         id: current.reduce((largest, item) => Math.max(largest, item.id), 0) + 1,
         description: "",
-        quantity: 1,
+        quantity: 0,
         price: 0,
         priceInput: "",
       },
@@ -193,7 +193,7 @@ export default function NewInvoiceModal({
           price,
         })),
         subtotal,
-        tax,
+        tax: taxAmount,
         amount: total,
         currency: "NGN",
         bank: bank.trim(),
@@ -495,10 +495,22 @@ export default function NewInvoiceModal({
                 <label className="block text-xs font-medium text-neutral-600 sm:col-span-2 lg:col-span-1 xl:col-span-2">
                   Tax (₦)
                   <input
-                    type="number"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]+([.][0-9]{0,2})?"
                     value={tax}
-                    onChange={(event) => setTax(Math.max(0, Number(event.target.value)))}
+                    onChange={(event) => {
+                      const cleaned = event.target.value.replace(/[^\d.]/g, "");
+                      const decimalIndex = cleaned.indexOf(".");
+                      const normalized =
+                        decimalIndex === -1
+                          ? cleaned
+                          : `${cleaned.slice(0, decimalIndex)}.${cleaned
+                              .slice(decimalIndex + 1)
+                              .replace(/\./g, "")
+                              .slice(0, 2)}`;
+                      setTax(normalized.startsWith(".") ? `0${normalized}` : normalized);
+                    }}
                     className={fieldClassName}
                   />
                 </label>
@@ -506,126 +518,107 @@ export default function NewInvoiceModal({
             </div>
 
             <div className="bg-neutral-100 p-4 sm:p-7 lg:overflow-y-auto">
-              <article className="mx-auto max-w-2xl border border-neutral-200 border-t-2 border-t-blue-700 bg-white px-5 py-6 sm:px-9 sm:py-9">
-                <header className="flex flex-col justify-between gap-5 border-b border-neutral-200 pb-7 sm:flex-row sm:items-end sm:gap-4">
-                  <div>
-                    <div className="mb-3 flex h-16 w-40 items-center">
+              <article className="mx-auto max-w-2xl overflow-hidden border border-neutral-200 bg-white">
+                <div className="h-1 bg-blue-700" />
+                <div className="px-5 py-6 sm:px-8 sm:py-8">
+                  <header className="flex items-start justify-between gap-5 border-b border-neutral-200 pb-5">
+                    <div className="min-h-12">
                       {logoPreview && (
                         <Image
                           src={logoPreview}
-                          alt={`${fromName} logo`}
-                          width={100}
-                          height={100}
+                          alt={`${fromName || "Business"} logo`}
+                          width={144}
+                          height={64}
                           unoptimized
-                          className="object-contain object-left"
+                          className="h-14 w-36 object-contain object-left"
                         />
                       )}
                     </div>
-                    <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">
-                      From
-                    </p>
-                    <p className="font-serif text-xl text-neutral-950">{fromName}</p>
-                    <p className="mt-1 text-xs text-neutral-500">{fromAddress}</p>
-                  </div>
-                  <div className="text-left sm:text-right">
-                    <p className="font-serif text-4xl text-neutral-950">Invoice</p>
-                    <p className="mt-2 text-sm font-semibold text-blue-700">
-                      #{invoiceNumber}
-                    </p>
-                  </div>
-                </header>
+                    <div className="text-right">
+                      <p className="font-serif text-2xl text-neutral-950">INVOICE</p>
+                      <p className="mt-1 text-xs font-semibold text-blue-700">#{invoiceNumber}</p>
+                    </div>
+                  </header>
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-5 border-b border-neutral-200 py-6 text-sm sm:grid-cols-[1.5fr_1fr_1fr]">
-                  <div>
-                    <p className="mb-2 text-[10px] font-semibold uppercase text-neutral-400">
-                      Bill to
-                    </p>
-                    <p className="font-semibold text-neutral-950">
-                      {client || "Client name"}
-                    </p>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {clientAddress || "Client address"}
-                    </p>
-                    {clientEmail && (
-                      <p className="mt-1 text-xs text-neutral-500">{clientEmail}</p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="mb-2 text-[10px] font-semibold uppercase text-neutral-400">Issued</p>
-                    <p className="text-xs font-medium text-neutral-800">{issuedOn || "Issue date"}</p>
-                  </div>
-                  <div>
-                    <p className="mb-2 text-[10px] font-semibold uppercase text-neutral-400">Due date</p>
-                    <p className="text-xs font-medium text-neutral-800">{dueOn || "Due date"}</p>
-                  </div>
-                </div>
+                  <section className="grid gap-5 border-b border-neutral-200 py-5 sm:grid-cols-2">
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-widest text-neutral-400">From</p>
+                      <p className="mt-2 text-xs font-semibold text-neutral-950">{fromName || "Your business"}</p>
+                      <p className="mt-1 text-[10px] text-neutral-500">{fromAddress}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-widest text-neutral-400">Bill to</p>
+                      <p className="mt-2 text-xs font-semibold text-neutral-950">{client || "Client name"}</p>
+                      <p className="mt-1 text-[10px] text-neutral-500">{clientAddress || "Client address"}</p>
+                      {clientEmail && <p className="mt-1 text-[10px] text-neutral-500">{clientEmail}</p>}
+                    </div>
+                  </section>
 
-                <table className="mt-6 w-full table-fixed text-left text-xs">
-                  <thead className="border-y border-neutral-300 text-[10px] uppercase text-neutral-500">
-                    <tr>
-                      <th className="w-[45%] py-2 font-semibold">Description</th>
-                      <th className="w-[12%] py-2 text-center font-semibold">Qty</th>
-                      <th className="w-[21%] py-2 text-right font-semibold">Price</th>
-                      <th className="w-[22%] py-2 text-right font-semibold">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {items.map((item) => (
-                      <tr key={item.id} className="even:bg-neutral-50">
-                        <td className="wrap-break-word py-3 pr-2 text-neutral-800">
-                          {item.description || "Item description"}
-                        </td>
-                        <td className="py-3 text-center tabular-nums text-neutral-600">
-                          {item.quantity}
-                        </td>
-                        <td className="py-3 text-right tabular-nums text-neutral-600">
-                          {formatNaira(item.price)}
-                        </td>
-                        <td className="py-3 text-right font-medium tabular-nums text-neutral-900">
-                          {formatNaira(item.quantity * item.price)}
-                        </td>
+                  <section className="grid grid-cols-2 gap-4 border-b border-neutral-200 py-3 sm:grid-cols-3">
+                    <div>
+                      <p className="text-[8px] font-semibold uppercase text-neutral-400">Invoice number</p>
+                      <p className="mt-1 text-[10px] text-neutral-700">#{invoiceNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] font-semibold uppercase text-neutral-400">Issued</p>
+                      <p className="mt-1 text-[10px] text-neutral-700">{issuedOn || "Issue date"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] font-semibold uppercase text-neutral-400">Due date</p>
+                      <p className="mt-1 text-[10px] text-neutral-700">{dueOn || "Due date"}</p>
+                    </div>
+                  </section>
+
+                  <div className="mt-5 flex items-center justify-between">
+                    <h3 className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-500">Description</h3>
+                    <span className="text-[9px] text-neutral-400">{items.length} {items.length === 1 ? "item" : "items"}</span>
+                  </div>
+                  <table className="mt-2 w-full table-fixed text-left text-[10px]">
+                    <thead className="border-y border-neutral-300 text-[8px] uppercase tracking-wide text-neutral-500">
+                      <tr>
+                        <th className="w-[46%] py-2 font-medium">Description</th>
+                        <th className="w-[12%] px-1 py-2 text-center font-medium">Qty</th>
+                        <th className="w-[20%] px-1 py-2 text-right font-medium">Price</th>
+                        <th className="w-[22%] py-2 text-right font-medium">Total</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {items.map((item) => (
+                        <tr key={item.id}>
+                          <td className="wrap-break-word py-3 pr-1 text-neutral-800">{item.description || "Item description"}</td>
+                          <td className="px-1 py-3 text-center tabular-nums text-neutral-600">{item.quantity || ""}</td>
+                          <td className="px-1 py-3 text-right tabular-nums text-neutral-600">{item.priceInput ? formatNaira(item.price) : ""}</td>
+                          <td className="py-3 text-right font-medium tabular-nums text-neutral-900">{item.quantity && item.priceInput ? formatNaira(item.quantity * item.price) : ""}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
 
-                <div className="ml-auto mt-5 max-w-56 space-y-2 border-t border-neutral-200 pt-3 text-xs">
-                  <div className="flex justify-between gap-4 text-neutral-500">
-                    <span>Subtotal</span>
-                    <span className="tabular-nums">{formatNaira(subtotal)}</span>
+                  <div className="ml-auto mt-4 max-w-56 space-y-2 border-t border-neutral-200 pt-3 text-[10px]">
+                    <div className="flex justify-between gap-3 text-neutral-500"><span>Subtotal</span><span>{formatNaira(subtotal)}</span></div>
+                    <div className="flex justify-between gap-3 text-neutral-500"><span>Tax</span><span>{formatNaira(taxAmount)}</span></div>
+                    <div className="flex items-baseline justify-between border-t border-neutral-300 pt-2 font-semibold text-neutral-950">
+                      <span>Total</span><span className="font-serif text-xl tabular-nums">{formatNaira(total)}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between gap-4 text-neutral-500">
-                    <span>Tax</span>
-                    <span className="tabular-nums">{formatNaira(tax)}</span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-4 border-t border-neutral-300 pt-2 font-semibold text-neutral-950">
-                    <span className="text-xs">Total due</span>
-                    <span className="font-serif text-3xl tabular-nums">{formatNaira(total)}</span>
-                  </div>
+
+                  <section className="mt-6 grid gap-3 border-t border-neutral-200 pt-4 sm:grid-cols-2">
+                    <div>
+                      <h3 className="text-[9px] font-semibold uppercase text-neutral-400">Payment information</h3>
+                      <p className="mt-2 text-[10px] text-neutral-600">Bank: {bank || "Not provided"}</p>
+                      <p className="mt-1 text-[10px] text-neutral-600">Account: {account || "Not provided"}</p>
+                    </div>
+                    <div className="sm:text-right">
+                      <p className="text-[9px] font-semibold uppercase text-neutral-400">Due date</p>
+                      <p className="mt-2 text-[10px] text-neutral-700">{dueOn || "Due date"}</p>
+                    </div>
+                  </section>
+
+                  <footer className="mt-6 flex items-center justify-between gap-3 border-t border-neutral-200 pt-4">
+                    <p className="text-[9px] text-neutral-500">Invoice Generated From Invora</p>
+                    <Image src="/logo.png" alt="Invora" width={120} height={48} className="h-7 w-auto object-contain" />
+                  </footer>
                 </div>
-
-                <div className="mt-7 grid gap-3 border-t border-neutral-200 pt-5 sm:grid-cols-[1fr_2fr]">
-                  <h3 className="text-[10px] font-semibold uppercase text-neutral-400">
-                    Payment information
-                  </h3>
-                  <div className="grid gap-3 text-xs text-neutral-700 sm:grid-cols-2">
-                    <p><span className="mb-1 block text-[10px] font-semibold uppercase text-neutral-400">Bank</span>{bank || "Not provided"}</p>
-                    <p><span className="mb-1 block text-[10px] font-semibold uppercase text-neutral-400">Account</span>{account || "Not provided"}</p>
-                  </div>
-                </div>
-
-                <footer className="mt-7 flex flex-col items-center justify-between gap-3 border-t border-neutral-200 pt-4 text-center sm:flex-row">
-                  <p className="text-xs text-neutral-500">
-                    Invoice Generated From Invora
-                  </p>
-                  <Image
-                    src="/logo.png"
-                    alt="Invora"
-                    width={120}
-                    height={48}
-                      className="h-8 w-auto object-contain"
-                  />
-                </footer>
               </article>
             </div>
           </div>

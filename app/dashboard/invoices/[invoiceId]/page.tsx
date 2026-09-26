@@ -205,9 +205,9 @@ export default function InvoiceDetailsPage() {
           </p>
         </div>
       ) : (
-        <article className="invoice-print mx-auto max-w-3xl border border-neutral-200 border-t-2 border-t-blue-700 bg-white px-6 py-8 sm:px-12 sm:py-11">
-          <header className="flex flex-col justify-between gap-6 border-b border-neutral-200 pb-7 sm:flex-row sm:items-end sm:pb-9">
-            <div>
+        <article className="invoice-print mx-auto max-w-3xl border border-neutral-200 bg-white px-6 py-8 sm:px-10 sm:py-10">
+          <header className="flex items-start justify-between gap-6 border-b border-neutral-200 pb-6">
+            <div className="min-h-16">
               {invoice.logoDataUrl && (
                 <Image
                   src={invoice.logoDataUrl}
@@ -215,37 +215,39 @@ export default function InvoiceDetailsPage() {
                   width={160}
                   height={64}
                   unoptimized
-                  className="mb-3 h-16 w-40 object-contain object-left"
+                  className="h-14 w-36 object-contain object-left"
                 />
               )}
-              <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">
-                From
-              </p>
-              <p className="font-serif text-2xl text-neutral-950">
-                {invoice.fromName}
-              </p>
-              <p className="mt-1 text-sm text-neutral-500">
-                {invoice.fromAddress}
-              </p>
             </div>
-            <div className="text-left sm:text-right">
-              <h1 className="font-serif text-4xl text-neutral-950">Invoice</h1>
-              <p className="mt-2 text-sm font-semibold text-blue-700">
+            <div className="text-right">
+              <h1 className="font-serif text-3xl text-neutral-950">INVOICE</h1>
+              <p className="mt-1 text-sm font-semibold text-blue-700">
                 {invoice.invoiceNumber}
               </p>
               <span
-                className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${statusStyles[invoice.status]}`}
+                className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize ${statusStyles[invoice.status]}`}
               >
                 {invoice.status}
               </span>
             </div>
           </header>
 
-          <div className="grid grid-cols-2 gap-x-6 gap-y-5 border-b border-neutral-200 py-6 sm:grid-cols-[1.5fr_1fr_1fr] sm:py-7">
+          <section className="grid gap-6 border-b border-neutral-200 py-6 sm:grid-cols-2">
             <div>
-              <p className="text-[10px] font-semibold uppercase text-neutral-400">
-                Bill to
+              <h2 className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400">
+                From
+              </h2>
+              <p className="mt-2 text-sm font-semibold text-neutral-950">
+                {invoice.fromName}
               </p>
+              <p className="mt-1 text-sm text-neutral-500">
+                {invoice.fromAddress}
+              </p>
+            </div>
+            <div>
+              <h2 className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400">
+                Bill to
+              </h2>
               <p className="mt-2 text-sm font-semibold text-neutral-950">
                 {invoice.client}
               </p>
@@ -258,27 +260,38 @@ export default function InvoiceDetailsPage() {
                 </p>
               )}
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase text-neutral-400">
+          </section>
+
+          <div className="grid grid-cols-2 gap-5 border-b border-neutral-200 py-4 text-xs sm:grid-cols-3">
+            <p>
+              <span className="mb-1 block text-[9px] font-semibold uppercase text-neutral-400">
+                Invoice number
+              </span>
+              {invoice.invoiceNumber}
+            </p>
+            <p>
+              <span className="mb-1 block text-[9px] font-semibold uppercase text-neutral-400">
                 Issued
-              </p>
-              <p className="mt-2 text-sm font-medium text-neutral-800">
-                {date(invoice.issuedOn)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase text-neutral-400">
+              </span>
+              {date(invoice.issuedOn)}
+            </p>
+            <p>
+              <span className="mb-1 block text-[9px] font-semibold uppercase text-neutral-400">
                 Due date
-              </p>
-              <p
-                className={`mt-2 text-sm font-medium ${invoice.status === "overdue" ? "text-rose-700" : "text-neutral-800"}`}
+              </span>
+              <span
+                className={
+                  invoice.status === "overdue"
+                    ? "font-medium text-rose-700"
+                    : "text-neutral-700"
+                }
               >
                 {date(invoice.dueOn)}
-              </p>
-            </div>
+              </span>
+            </p>
           </div>
 
-          <table className="mt-7 w-full text-left text-sm">
+          <table className="mt-6 w-full text-left text-sm">
             <thead className="border-y border-neutral-300 text-[10px] uppercase text-neutral-500">
               <tr>
                 <th className="py-3 font-medium">Description</th>
@@ -289,10 +302,7 @@ export default function InvoiceDetailsPage() {
             </thead>
             <tbody className="divide-y divide-neutral-100">
               {invoice.items.map((item, index) => (
-                <tr
-                  key={`${item.description}-${index}`}
-                  className="even:bg-neutral-50"
-                >
+                <tr key={`${item.description}-${index}`}>
                   <td className="py-4 pr-3 text-neutral-800">
                     {item.description}
                   </td>
@@ -310,7 +320,7 @@ export default function InvoiceDetailsPage() {
             </tbody>
           </table>
 
-          <div className="ml-auto mt-7 max-w-xs space-y-3 border-t border-neutral-200 pt-4 text-sm">
+          <div className="ml-auto mt-6 max-w-xs space-y-3 border-t border-neutral-200 pt-4 text-sm">
             <div className="flex justify-between text-neutral-500">
               <span>Subtotal</span>
               <span>{money(invoice.subtotal)}</span>
@@ -320,18 +330,18 @@ export default function InvoiceDetailsPage() {
               <span>{money(invoice.tax)}</span>
             </div>
             <div className="flex items-baseline justify-between border-t border-neutral-300 pt-3 font-semibold text-neutral-950">
-              <span className="text-sm">Total due</span>
+              <span>Total</span>
               <span className="font-serif text-3xl">
                 {money(invoice.amount)}
               </span>
             </div>
           </div>
 
-          <div className="mt-9 grid gap-4 border-t border-neutral-200 pt-6 sm:grid-cols-[1fr_2fr]">
-            <h2 className="text-[10px] font-semibold uppercase text-neutral-400">
-              Payment information
+          <section className="mt-8 border-t border-neutral-200 pt-5">
+            <h2 className="text-sm font-semibold text-neutral-900">
+              Payment Information
             </h2>
-            <div className="grid gap-4 text-sm text-neutral-700 sm:grid-cols-2">
+            <div className="mt-3 grid gap-4 text-sm text-neutral-600 sm:grid-cols-2">
               <p>
                 <span className="mb-1 block text-[10px] font-semibold uppercase text-neutral-400">
                   Bank
@@ -345,8 +355,9 @@ export default function InvoiceDetailsPage() {
                 {invoice.account || "Not provided"}
               </p>
             </div>
-          </div>
-          <footer className="mt-9 flex flex-col items-center justify-between gap-3 border-t border-neutral-200 pt-5 text-center sm:flex-row">
+          </section>
+
+          <footer className="mt-8 flex items-center justify-between gap-4 border-t border-neutral-200 pt-4">
             <p className="text-xs text-neutral-500">
               Invoice Generated From Invora
             </p>

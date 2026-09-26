@@ -2,9 +2,11 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   onSnapshot,
   serverTimestamp,
   updateDoc,
+  writeBatch,
   type Timestamp,
 } from "firebase/firestore";
 import { firebaseDb, firebaseSetupMessage } from "./firebase";
@@ -36,10 +38,19 @@ export type InvoiceRecord = {
   bank: string;
   account: string;
   status: InvoiceStatus;
+  shareId?: string;
   createdAt?: Timestamp;
 };
 
-export type NewInvoiceRecord = Omit<InvoiceRecord, "id" | "status" | "createdAt">;
+export type NewInvoiceRecord = Omit<
+  InvoiceRecord,
+  "id" | "status" | "shareId" | "createdAt"
+>;
+
+export type PublicInvoiceRecord = Omit<
+  InvoiceRecord,
+  "clientEmail" | "shareId" | "createdAt"
+>;
 
 function userInvoicesCollection(userId: string) {
   if (!firebaseDb) throw new Error(firebaseSetupMessage);
@@ -93,13 +104,77 @@ export async function createUserInvoice(
   return document.id;
 }
 
+export async function createPublicInvoiceShare(
+  userId: string,
+  invoice: InvoiceRecord,
+) {
+  if (!firebaseDb) throw new Error(firebaseSetupMessage);
+  if (invoice.shareId) return invoice.shareId;
+
+  const shareReference = doc(collection(firebaseDb, "publicInvoices"));
+  const batch = writeBatch(firebaseDb);
+  const publicInvoice: PublicInvoiceRecord = {
+    id: invoice.id,
+    invoiceNumber: invoice.invoiceNumber,
+    fromName: invoice.fromName,
+    fromAddress: invoice.fromAddress,
+    ...(invoice.logoDataUrl ? { logoDataUrl: invoice.logoDataUrl } : {}),
+    client: invoice.client,
+    clientAddress: invoice.clientAddress,
+    issuedOn: invoice.issuedOn,
+    dueOn: invoice.dueOn,
+    items: invoice.items,
+    subtotal: invoice.subtotal,
+    tax: invoice.tax,
+    amount: invoice.amount,
+    currency: invoice.currency,
+    bank: invoice.bank,
+    account: invoice.account,
+    status: invoice.status,
+  };
+
+  batch.update(doc(firebaseDb, "users", userId, "invoices", invoice.id), {
+    shareId: shareReference.id,
+  });
+  batch.set(shareReference, { ownerUid: userId, invoice: publicInvoice });
+  await batch.commit();
+
+  return shareReference.id;
+}
+
+export async function getPublicInvoiceShare(shareId: string) {
+  if (!firebaseDb) throw new Error(firebaseSetupMessage);
+
+  const snapshot = await getDoc(doc(firebaseDb, "publicInvoices", shareId));
+  if (!snapshot.exists()) return null;
+
+  return snapshot.data().invoice as PublicInvoiceRecord;
+}
+
 export async function updateUserInvoiceStatus(
   userId: string,
   invoiceId: string,
   status: "paid",
 ) {
   if (!firebaseDb) throw new Error(firebaseSetupMessage);
-  await updateDoc(doc(firebaseDb, "users", userId, "invoices", invoiceId), {
-    status,
-  });
+
+  const invoiceReference = doc(
+    firebaseDb,
+    "users",
+    userId,
+    "invoices",
+    invoiceId,
+  );
+  const invoiceSnapshot = await getDoc(invoiceReference);
+  const batch = writeBatch(firebaseDb);
+  batch.update(invoiceReference, { status });
+
+  const shareId = invoiceSnapshot.data()?.shareId;
+  if (typeof shareId === "string") {
+    batch.update(doc(firebaseDb, "publicInvoices", shareId), {
+      "invoice.status": status,
+    });
+  }
+
+  await batch.commit();
 }

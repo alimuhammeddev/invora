@@ -4,11 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { FirebaseError } from "firebase/app";
 import { onAuthStateChanged } from "firebase/auth";
-import { ArrowLeft, Download, Send } from "lucide-react";
+import { ArrowLeft, Check, Copy, Download } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { firebaseAuth, firebaseSetupMessage } from "../../../../lib/firebase";
 import {
+  createPublicInvoiceShare,
   subscribeToUserInvoices,
   updateUserInvoiceStatus,
   type InvoiceRecord,
@@ -35,11 +36,9 @@ export default function InvoiceDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [savingStatus, setSavingStatus] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [recipientEmail, setRecipientEmail] = useState("");
-
-  useEffect(() => {
-    setRecipientEmail(invoice?.clientEmail ?? "");
-  }, [invoice?.id, invoice?.clientEmail]);
+  const [linkCopyStatus, setLinkCopyStatus] = useState<
+    "idle" | "creating" | "copied" | "error"
+  >("idle");
 
   useEffect(() => {
     if (!firebaseAuth) {
@@ -102,29 +101,22 @@ export default function InvoiceDetailsPage() {
     }
   }
 
-  function emailInvoice() {
-    if (!invoice || !recipientEmail.trim()) return;
-    const itemLines = invoice.items
-      .map(
-        (item) =>
-          `${item.description} x ${item.quantity}: ${money(item.quantity * item.price)}`,
-      )
-      .join("\n");
-    const body = [
-      `Hello ${invoice.client},`,
-      "",
-      `Please find invoice ${invoice.invoiceNumber} for ${money(invoice.amount)}.`,
-      "",
-      itemLines,
-      "",
-      `Due date: ${date(invoice.dueOn)}`,
-      `Payment bank: ${invoice.bank}`,
-      `Account: ${invoice.account}`,
-      "",
-      "Invoice Generated From Invora",
-    ].join("\n");
-    const subject = `Invoice ${invoice.invoiceNumber} from ${invoice.fromName}`;
-    window.location.href = `mailto:${encodeURIComponent(recipientEmail.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  async function copyInvoiceLink() {
+    if (!invoice || !userId) return;
+
+    try {
+      setLinkCopyStatus("creating");
+      const shareId = await createPublicInvoiceShare(userId, invoice);
+      setInvoice({ ...invoice, shareId });
+      const invoiceUrl = new URL(
+        `/invoice/${encodeURIComponent(shareId)}`,
+        window.location.origin,
+      );
+      await navigator.clipboard.writeText(invoiceUrl.toString());
+      setLinkCopyStatus("copied");
+    } catch {
+      setLinkCopyStatus("error");
+    }
   }
 
   return (
@@ -147,28 +139,24 @@ export default function InvoiceDetailsPage() {
               <Download className="h-4 w-4" />
               Download / Print PDF
             </button>
-            <label className="sr-only" htmlFor="invoice-recipient-email">
-              Recipient email
-            </label>
-            <input
-              id="invoice-recipient-email"
-              type="email"
-              required
-              value={recipientEmail}
-              onChange={(event) => setRecipientEmail(event.target.value)}
-              placeholder="recipient@example.com"
-              className="h-10 w-56 rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
             <button
               type="button"
-              onClick={emailInvoice}
-              disabled={
-                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail.trim())
-              }
+              onClick={copyInvoiceLink}
+              disabled={!userId || linkCopyStatus === "creating"}
               className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Send className="h-4 w-4" />
-              Send
+              {linkCopyStatus === "creating" ? null : linkCopyStatus === "copied" ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+              {linkCopyStatus === "creating"
+                ? "Preparing link..."
+                : linkCopyStatus === "copied"
+                ? "Link copied"
+                : linkCopyStatus === "error"
+                  ? "Copy failed"
+                  : "Copy invoice link"}
             </button>
             {invoice.status !== "paid" && (
               <button

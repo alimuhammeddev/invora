@@ -31,7 +31,7 @@ These `NEXT_PUBLIC_` values are Firebase web client configuration, not service-a
 
 In Firebase Console, enable **Email/Password** and **Google** under Authentication > Sign-in method. Add `localhost` and your deployed hostname to Authentication > Settings > Authorized domains. Restart the development server after changing `.env.local`.
 
-Create a Cloud Firestore database in Firebase Console. Publish the rules in [`firestore.rules`](firestore.rules) from Firestore Database > Rules. Invoices are saved under `users/{userId}/invoices`, so each user can access only their own records. Account deletion is a soft delete: the profile and invoices remain stored, access is blocked while deleted, and signing up again with the same verified credentials restores the same account and invoices. Republish the rules after changing them for these access checks to take effect.
+Create a Cloud Firestore database in Firebase Console. Publish the rules in [`firestore.rules`](firestore.rules) from Firestore Database > Rules. Invoices are saved under `users/{userId}/invoices`, so each user can access only their own records. Copying an invoice link creates a public, read-only snapshot under `publicInvoices`; anyone with that link can view the invoice, excluding the recipient email. Account deletion is a soft delete: the profile and invoices remain stored, access is blocked while deleted, and signing up again with the same verified credentials restores the same account and invoices. Republish the rules after changing them for these access checks to take effect.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

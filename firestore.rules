@@ -33,16 +33,49 @@ service cloud.firestore {
           && request.resource.data.status == 'unpaid';
         allow update: if ownsAccount(userId)
           && accountIsActive(userId)
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
           && (
-            (resource.data.status == 'unpaid'
-              && request.resource.data.status in ['paid', 'overdue'])
-            || (resource.data.status == 'overdue'
-              && request.resource.data.status == 'paid')
-            || (resource.data.status == 'paid'
-              && request.resource.data.status == 'paid')
+            (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+              && (
+                (resource.data.status == 'unpaid'
+                  && request.resource.data.status in ['paid', 'overdue'])
+                || (resource.data.status == 'overdue'
+                  && request.resource.data.status == 'paid')
+                || (resource.data.status == 'paid'
+                  && request.resource.data.status == 'paid')
+              )
+            )
+            || (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareId'])
+              && !('shareId' in resource.data)
+              && request.resource.data.shareId is string
+            )
           );
       }
+    }
+
+    match /publicInvoices/{shareId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+        && accountIsActive(request.auth.uid)
+        && request.resource.data.keys().hasOnly(['invoice'])
+        && request.resource.data.invoice is map
+        && request.resource.data.invoice.id is string
+        && !('clientEmail' in request.resource.data.invoice)
+        && !('shareId' in request.resource.data.invoice)
+        && !('createdAt' in request.resource.data.invoice)
+        && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid)/invoices/$(request.resource.data.invoice.id))
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)/invoices/$(request.resource.data.invoice.id)).data.shareId == shareId
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)/invoices/$(request.resource.data.invoice.id)).data.diff(request.resource.data.invoice).affectedKeys().hasOnly(['id', 'clientEmail', 'shareId', 'createdAt']);
+      allow update: if request.auth != null
+        && accountIsActive(request.auth.uid)
+        && resource.data.invoice.id is string
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)/invoices/$(resource.data.invoice.id)).data.shareId == shareId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['invoice'])
+        && request.resource.data.invoice.diff(resource.data.invoice).affectedKeys().hasOnly(['status'])
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)/invoices/$(resource.data.invoice.id)).data.status == request.resource.data.invoice.status;
+      allow delete: if false;
     }
   }
 }

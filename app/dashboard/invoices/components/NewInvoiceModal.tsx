@@ -299,7 +299,7 @@ export default function NewInvoiceModal({
                   />
                 </label>
                 <div className="text-xs font-medium text-neutral-600 sm:col-span-2 lg:col-span-1 xl:col-span-2">
-                  <span>Logo (optional)</span>
+                  <span>Brand Logo (optional)</span>
                   <div className="mt-1.5 flex min-h-10 flex-wrap items-center gap-2">
                     <label className="inline-flex h-10 cursor-pointer items-center rounded-lg border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-700 transition hover:border-blue-300 hover:text-blue-700 focus-within:ring-2 focus-within:ring-blue-100">
                       <input

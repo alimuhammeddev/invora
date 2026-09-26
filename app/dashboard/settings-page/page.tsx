@@ -133,13 +133,17 @@ export default function SettingsPage() {
   const handleDeleteAccount = async () => {
     const auth = firebaseAuth;
     if (!auth) {
-      setDeleteError("You are not signed in. Sign in again to delete your account.");
+      setDeleteError(
+        "You are not signed in. Sign in again to delete your account.",
+      );
       return;
     }
 
     const currentUser = auth.currentUser;
     if (!currentUser) {
-      setDeleteError("You are not signed in. Sign in again to delete your account.");
+      setDeleteError(
+        "You are not signed in. Sign in again to delete your account.",
+      );
       return;
     }
 
@@ -160,10 +164,10 @@ export default function SettingsPage() {
       <div className="mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
             Settings
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-base text-slate-500">
             Manage your account, business preferences and settings.
           </p>
         </div>
@@ -395,7 +399,9 @@ export default function SettingsPage() {
                       <label className="mb-2 block text-sm font-medium text-slate-700">
                         Currency
                       </label>
-                      <select className={`${businessInputClassName} cursor-pointer`}>
+                      <select
+                        className={`${businessInputClassName} cursor-pointer`}
+                      >
                         <option>USD — US Dollar</option>
                         <option>NGN — Nigerian Naira</option>
                         <option>GBP — British Pound</option>
@@ -489,11 +495,23 @@ export default function SettingsPage() {
                 <div className="mt-6 grid gap-4 sm:grid-cols-3">
                   <UsageCard
                     label="Invoices"
-                    value={billingLoading ? "Loading..." : billingError ? "Unavailable" : String(invoiceCount)}
+                    value={
+                      billingLoading
+                        ? "Loading..."
+                        : billingError
+                          ? "Unavailable"
+                          : String(invoiceCount)
+                    }
                   />
                   <UsageCard
                     label="Clients"
-                    value={billingLoading ? "Loading..." : billingError ? "Unavailable" : String(clientCount)}
+                    value={
+                      billingLoading
+                        ? "Loading..."
+                        : billingError
+                          ? "Unavailable"
+                          : String(clientCount)
+                    }
                   />
                   <UsageCard label="Storage" value="Unlimited" />
                 </div>
@@ -586,7 +604,7 @@ export default function SettingsPage() {
 
                 <div className="mt-8 border-t border-red-100 pt-6">
                   <h3 className="text-sm font-semibold text-red-600">
-                    Danger zone
+                    Delete Account
                   </h3>
 
                   <p className="mt-1 text-sm text-slate-500">
@@ -608,7 +626,6 @@ export default function SettingsPage() {
                 </div>
               </SettingsPanel>
             )}
-
           </div>
         </div>
       </div>
@@ -624,14 +641,26 @@ export default function SettingsPage() {
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-600">
               <Trash2 size={20} />
             </div>
-            <h2 id="delete-account-title" className="mt-4 text-lg font-semibold text-slate-900">
+            <h2
+              id="delete-account-title"
+              className="mt-4 text-lg font-semibold text-slate-900"
+            >
               Delete your account?
             </h2>
-            <p id="delete-account-description" className="mt-2 text-sm leading-6 text-slate-600">
-              You will be signed out and cannot log in until you restore the account through sign up. Your profile and invoices will remain stored and return when you restore it with the same sign-in details.
+            <p
+              id="delete-account-description"
+              className="mt-2 text-sm leading-6 text-slate-600"
+            >
+              You will be signed out and cannot log in until you restore the
+              account through sign up. Your profile and invoices will remain
+              stored and return when you restore it with the same sign-in
+              details.
             </p>
             {deleteError && (
-              <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <p
+                role="alert"
+                className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              >
                 {deleteError}
               </p>
             )}
@@ -749,4 +778,3 @@ function UsageCard({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-

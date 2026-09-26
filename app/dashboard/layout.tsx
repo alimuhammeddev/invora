@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import {
+  createContext,
   useEffect,
   useRef,
   useState,
@@ -16,24 +17,7 @@ import { isAccountDeleted } from "../../lib/userAccount";
 
 type DashboardUser = { name: string; email: string };
 
-function greetingForHour(hour: number) {
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
-
-function useGreeting() {
-  const [greeting, setGreeting] = useState("");
-
-  useEffect(() => {
-    const update = () => setGreeting(greetingForHour(new Date().getHours()));
-    update();
-    const id = setInterval(update, 60_000);
-    return () => clearInterval(id);
-  }, []);
-
-  return greeting;
-}
+export const DashboardNameContext = createContext("Account");
 
 /* ---------- Icons ---------- */
 
@@ -288,9 +272,6 @@ export default function DashboardLayout({
     email: "",
   });
   const menuRef = useRef<HTMLDivElement>(null);
-  const greeting = useGreeting();
-  const firstName = user.name === "Account" ? "" : user.name.split(" ")[0];
-
   useEffect(() => {
     const auth = firebaseAuth;
     if (!auth) return;
@@ -426,15 +407,6 @@ export default function DashboardLayout({
             <MenuIcon />
           </button>
 
-          <p className="truncate md:text-lg text-sm font-medium text-neutral-600" aria-live="off">
-            {greeting && (
-              <>
-                {greeting}
-                {firstName && <>, <span className="text-blue-600">{firstName}</span></>}
-              </>
-            )}
-          </p>
-
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             {/* Notifications */}
             <button
@@ -510,7 +482,9 @@ export default function DashboardLayout({
 
         {/* Page content scrolls; the sidebar and header stay put */}
         <main id="main-content" className="px-4 py-8 sm:px-6 lg:px-8">
-          {children}
+          <DashboardNameContext.Provider value={user.name}>
+            {children}
+          </DashboardNameContext.Provider>
         </main>
       </div>
     </div>

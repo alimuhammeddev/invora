@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { FirebaseError } from "firebase/app";
 import { onAuthStateChanged } from "firebase/auth";
-import { useEffect, useState, type ReactNode } from "react";
+import { useContext, useEffect, useState, type ReactNode } from "react";
 import { formatCurrencyAmount } from "../../lib/currency";
 import { firebaseAuth, firebaseSetupMessage } from "../../lib/firebase";
+import { DashboardNameContext } from "./layout";
 import {
   subscribeToUserInvoices,
   type InvoiceRecord,
@@ -50,6 +51,12 @@ const CheckPaths = (
   </>
 );
 
+function greetingForHour(hour: number) {
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 function summarizeAmounts(
   invoices: InvoiceRecord[],
   currencies = invoices,
@@ -70,9 +77,20 @@ function summarizeAmounts(
 /* ---------- Page ---------- */
 
 export default function Dashboard() {
+  const dashboardName = useContext(DashboardNameContext);
+  const [greeting, setGreeting] = useState("");
   const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const firstName = dashboardName === "Account" ? "" : dashboardName.split(" ")[0];
+
+  useEffect(() => {
+    const updateGreeting = () =>
+      setGreeting(greetingForHour(new Date().getHours()));
+    updateGreeting();
+    const intervalId = setInterval(updateGreeting, 60_000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     if (!firebaseAuth) {
@@ -163,7 +181,13 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-[-0.03em] text-neutral-950 sm:text-4xl">
+          <p className="mb-2 text-base font-medium text-neutral-500" aria-live="off">
+            {greeting}
+            {firstName && (
+              <>, <span className="font-semibold text-blue-700">{firstName}</span></>
+            )}
+          </p>
+          <h1 className="text-2xl font-semibold tracking-[-0.03em] text-neutral-950 md:text-3xl">
             Dashboard Overview
           </h1>
           <p className="mt-2 text-base text-neutral-500">
@@ -229,9 +253,9 @@ export default function Dashboard() {
             >
               Total invoiced
             </h2>
-            <p className="mt-3 text-5xl font-semibold tabular-nums tracking-tighter sm:text-7xl">
+            <p className="mt-3 text-5xl font-semibold tabular-nums sm:text-7xl">
               {total.amounts.map(({ currency, amount }) => (
-                <span key={currency} className="block text-4xl sm:text-5xl">
+                <span key={currency} className="block text-xl md:text-3xl">
                   {formatCurrencyAmount(amount, currency, "code")}
                 </span>
               ))}
@@ -242,7 +266,7 @@ export default function Dashboard() {
           </div>
 
           <div className="rounded-2xl bg-white/10 px-5 py-4 sm:text-right">
-            <p className="text-3xl font-semibold tabular-nums tracking-tight">
+            <p className="text-2xl font-semibold tabular-nums tracking-tight">
               {paidPercent}%
             </p>
             <p className="mt-0.5 text-sm text-blue-100">invoices paid</p>
@@ -334,7 +358,7 @@ export default function Dashboard() {
                 <p className="mt-1 text-sm text-neutral-500">{s.note}</p>
               </div>
               <p className="flex items-baseline gap-2">
-                <span className="text-4xl font-semibold tabular-nums tracking-tighter text-neutral-950">
+                <span className="text-3xl font-semibold tabular-nums tracking-tighter text-neutral-950">
                   {s.count}
                 </span>
                 <span className="text-sm text-neutral-500">invoices</span>

@@ -230,7 +230,7 @@ export default function Invoices() {
         {/* Header */}
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-3xl font-semibold tracking-[-0.03em] text-neutral-950 sm:text-4xl">
+            <h1 className="text-2xl font-semibold tracking-[-0.03em] text-neutral-950 md:text-3xl">
               Invoices
             </h1>
             <p className="mt-2 text-base text-neutral-500">
@@ -300,7 +300,7 @@ export default function Invoices() {
         </div>
 
         {/* List */}
-        <div className="overflow-hidden rounded-3xl border border-neutral-200 bg-white">
+        <div className="overflow-hidden rounded-3xl">
           {loading ? (
             <p className="px-6 py-16 text-center text-sm text-neutral-500">
               Loading your invoices...
@@ -336,7 +336,7 @@ export default function Invoices() {
                   <Link
                     key={invoice.id}
                     href={`/dashboard/invoices/${invoice.id}`}
-                    className="group relative overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_12px_35px_rgba(15,23,42,0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                    className="group relative overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
                   >
                     {/* Top row */}
                     <div className="relative flex items-start justify-between gap-4">

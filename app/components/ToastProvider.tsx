@@ -42,7 +42,7 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((current) => [...current, { id, message, type }].slice(-4));
     window.setTimeout(() => {
       setToasts((current) => current.filter((toast) => toast.id !== id));
-    }, 4000);
+    }, 1000);
   };
 
   function dismissToast(id: number) {

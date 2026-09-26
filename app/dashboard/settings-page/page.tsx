@@ -4,7 +4,6 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { useToast } from "../../components/ToastProvider";
 import { firebaseAuth } from "../../../lib/firebase";
 import { softDeleteUserAccount } from "../../../lib/userAccount";
 import { subscribeToUserInvoices } from "../../../lib/invoices";
@@ -60,7 +59,6 @@ const businessInputClassName =
 
 export default function SettingsPage() {
   const router = useRouter();
-  const showToast = useToast();
   const [activeSection, setActiveSection] = useState("profile");
   const [saved, setSaved] = useState(false);
   const [email, setEmail] = useState("");
@@ -126,7 +124,6 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     setSaved(true);
-    showToast("Settings changes saved");
 
     setTimeout(() => {
       setSaved(false);
@@ -155,7 +152,6 @@ export default function SettingsPage() {
     try {
       await softDeleteUserAccount(currentUser);
       await signOut(auth);
-      showToast("Your account has been deleted");
       router.replace("/login");
     } catch {
       setDeleteError("We couldn't delete your account. Please try again.");

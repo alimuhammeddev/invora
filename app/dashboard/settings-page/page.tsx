@@ -131,7 +131,13 @@ export default function SettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    const currentUser = firebaseAuth?.currentUser;
+    const auth = firebaseAuth;
+    if (!auth) {
+      setDeleteError("You are not signed in. Sign in again to delete your account.");
+      return;
+    }
+
+    const currentUser = auth.currentUser;
     if (!currentUser) {
       setDeleteError("You are not signed in. Sign in again to delete your account.");
       return;
@@ -141,7 +147,7 @@ export default function SettingsPage() {
     setDeleteError(null);
     try {
       await softDeleteUserAccount(currentUser);
-      await signOut(currentUser.auth);
+      await signOut(auth);
       router.replace("/login");
     } catch {
       setDeleteError("We couldn't delete your account. Please try again.");

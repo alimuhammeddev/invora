@@ -292,10 +292,11 @@ export default function DashboardLayout({
   const firstName = user.name === "Account" ? "" : user.name.split(" ")[0];
 
   useEffect(() => {
-    if (!firebaseAuth) return;
+    const auth = firebaseAuth;
+    if (!auth) return;
 
     let active = true;
-    const unsubscribe = onAuthStateChanged(firebaseAuth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (!firebaseUser) {
         setUser({ name: "Account", email: "" });
         return;
@@ -304,7 +305,7 @@ export default function DashboardLayout({
       void (async () => {
         try {
           if (await isAccountDeleted(firebaseUser.uid)) {
-            await signOut(firebaseAuth);
+            await signOut(auth);
             if (active) router.replace("/login");
             return;
           }

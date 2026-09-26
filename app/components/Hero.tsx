@@ -46,9 +46,9 @@ export default function Hero() {
           </h1>
 
           <p className="mx-auto mt-7 max-w-4xl md:text-lg text-base leading-8 text-slate-600">
-            Build a professional invoice in seconds, add your logo and colors,
-            and send it straight to your client. Everything you need to manage
-            your invoices, in one place.
+            Create branded invoices in multiple currencies, share them with a
+            secure link, and track each one from unpaid to paid or overdue in
+            your Invora dashboard.
           </p>
 
           <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
@@ -60,7 +60,7 @@ export default function Hero() {
             </Link>
 
             <Link
-              href="#"
+              href="#how-it-works"
               className="group inline-flex items-center justify-center gap-2.5 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-200 transition-colors hover:bg-slate-50 hover:ring-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
@@ -79,9 +79,9 @@ export default function Hero() {
 
           <ul className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-slate-600">
             {[
-              "No credit card required",
-              "Free to start",
-              "Your branding on every invoice",
+              "Multiple currencies",
+              "Shareable invoice links",
+              "Paid and overdue tracking",
             ].map((text) => (
               <li key={text} className="flex items-center gap-2.5">
                 <CheckIcon />

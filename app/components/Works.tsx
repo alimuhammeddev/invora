@@ -5,13 +5,13 @@ const steps = [
   {
     title: "Create your invoice",
     description:
-      "Add your client and line items. Your logo and colors are applied automatically, and the totals work themselves out.",
+      "Add your client and line items. You apply your logo, and the totals work themselves out.",
     meta: "Under a minute",
   },
   {
-    title: "Send it to your client",
+    title: "Share the invoice link",
     description:
-      "Email it straight from the app or share a link. Your client receives a clean, professional invoice they can open anywhere.",
+      "Copy a read only link your client can open to view the invoice without signing in.",
     meta: "One click",
   },
   {

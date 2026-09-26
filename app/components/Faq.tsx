@@ -10,14 +10,14 @@ const faqs = [
       "Yes. You can create and send invoices on the free plan without adding a credit card. Upgrade only when you need more.",
   },
   {
-    question: "Can I add my logo and brand colors?",
+    question: "Can I add my logo to invoices?",
     answer:
-      "Yes. Upload your logo and choose your colors once, and they are applied to every invoice you create from then on.",
+      "Yes. Upload your business logo when creating an invoice, and it will appear on the finished invoice.",
   },
   {
-    question: "How do payment reminders work?",
+    question: "Can clients view an invoice without an account?",
     answer:
-      "You choose when reminders go out, for example before the due date, on the day itself and after it passes. They send automatically until the invoice is paid.",
+      "Yes. Copy the invoice's share link and send it to your client. The read only page opens without requiring them to sign in.",
   },
   {
     question: "Can I bill clients in different currencies?",

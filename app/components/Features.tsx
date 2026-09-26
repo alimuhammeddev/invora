@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link2 } from "lucide-react";
 
 function Icon({ children }: { children: ReactNode }) {
   return (
@@ -31,13 +32,6 @@ const SparkleIcon = () => (
   </Icon>
 );
 
-const BellIcon = () => (
-  <Icon>
-    <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9Z" />
-    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-  </Icon>
-);
-
 const ChartIcon = () => (
   <Icon>
     <path d="M5 20v-9M12 20V4M19 20v-6" />
@@ -55,13 +49,13 @@ const features: { icon: ReactNode; title: string; description: string }[] = [
     icon: <SparkleIcon />,
     title: "Your brand on every invoice",
     description:
-      "Upload your logo and pick your colors so every invoice looks like it came from you.",
+      "Upload your logo so every invoice looks like it came from you.",
   },
   {
-    icon: <BellIcon />,
-    title: "Reminders that send themselves",
+    icon: <Link2 />,
+    title: "Share invoices with a link",
     description:
-      "Set the schedule once and stop chasing late payments by hand.",
+      "Send clients a read-only invoice link they can open without signing in.",
   },
   {
     icon: <ChartIcon />,

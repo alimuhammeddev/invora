@@ -31,6 +31,8 @@ These `NEXT_PUBLIC_` values are Firebase web client configuration, not service-a
 
 In Firebase Console, enable **Email/Password** and **Google** under Authentication > Sign-in method. Add `localhost` and your deployed hostname to Authentication > Settings > Authorized domains. Restart the development server after changing `.env.local`.
 
+Create a Cloud Firestore database in Firebase Console. Publish the owner-only rules in [`firestore.rules`](firestore.rules) from Firestore Database > Rules. Invoices are saved under `users/{userId}/invoices`, so each signed-in user can access only their own records.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

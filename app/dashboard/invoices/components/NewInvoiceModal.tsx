@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import type { NewInvoiceRecord } from "../../../../lib/invoices";
 
 type LineItem = {
   id: number;
@@ -11,18 +12,11 @@ type LineItem = {
   priceInput: string;
 };
 
-export type InvoiceDraft = {
-  client: string;
-  issuedOn: string;
-  dueOn: string;
-  amount: number;
-};
-
 type NewInvoiceModalProps = {
   open: boolean;
   invoiceNumber: string;
   onClose: () => void;
-  onCreate: (invoice: InvoiceDraft) => void;
+  onCreate: (invoice: NewInvoiceRecord) => Promise<void>;
 };
 
 const fieldClassName =
@@ -46,12 +40,15 @@ export default function NewInvoiceModal({
   const [fromAddress, setFromAddress] = useState("Lagos, Nigeria");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [client, setClient] = useState("ABC Limited");
+  const [clientEmail, setClientEmail] = useState("");
   const [clientAddress, setClientAddress] = useState("Lagos, Nigeria");
   const [issuedOn, setIssuedOn] = useState(today);
   const [dueOn, setDueOn] = useState(today);
   const [bank, setBank] = useState("Example Bank");
   const [account, setAccount] = useState("1234567890");
   const [tax, setTax] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [items, setItems] = useState<LineItem[]>([
     {
       id: 1,
@@ -141,9 +138,42 @@ export default function NewInvoiceModal({
     ]);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onCreate({ client: client.trim(), issuedOn, dueOn, amount: total });
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      await onCreate({
+        invoiceNumber,
+        fromName: fromName.trim(),
+        fromAddress: fromAddress.trim(),
+        client: client.trim(),
+        clientEmail: clientEmail.trim(),
+        clientAddress: clientAddress.trim(),
+        issuedOn,
+        dueOn,
+        items: items.map(({ description, quantity, price }) => ({
+          description: description.trim(),
+          quantity,
+          price,
+        })),
+        subtotal,
+        tax,
+        amount: total,
+        currency: "NGN",
+        bank: bank.trim(),
+        account: account.trim(),
+      });
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "Could not save this invoice. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -248,6 +278,16 @@ export default function NewInvoiceModal({
                     onChange={(event) => setClient(event.target.value)}
                     className={fieldClassName}
                     required
+                  />
+                </label>
+                <label className="block text-xs font-medium text-neutral-600">
+                  Client email
+                  <input
+                    type="email"
+                    value={clientEmail}
+                    onChange={(event) => setClientEmail(event.target.value)}
+                    placeholder="client@example.com"
+                    className={fieldClassName}
                   />
                 </label>
                 <label className="block text-xs font-medium text-neutral-600">
@@ -421,8 +461,8 @@ export default function NewInvoiceModal({
             </div>
 
             <div className="bg-neutral-100 p-4 sm:p-7 lg:overflow-y-auto">
-              <article className="mx-auto max-w-2xl bg-white px-5 py-6 shadow-sm ring-1 ring-neutral-200 sm:px-9 sm:py-9">
-                <header className="flex items-start justify-between gap-4">
+              <article className="mx-auto max-w-2xl border border-neutral-200 border-t-2 border-t-blue-700 bg-white px-5 py-6 sm:px-9 sm:py-9">
+                <header className="flex flex-col justify-between gap-5 border-b border-neutral-200 pb-7 sm:flex-row sm:items-end sm:gap-4">
                   <div>
                     <div className="mb-3 flex h-16 w-40 items-center">
                       {logoPreview && (
@@ -436,45 +476,47 @@ export default function NewInvoiceModal({
                         />
                       )}
                     </div>
-                    <p className="font-semibold text-neutral-950">{fromName}</p>
+                    <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">
+                      From
+                    </p>
+                    <p className="font-serif text-xl text-neutral-950">{fromName}</p>
                     <p className="mt-1 text-xs text-neutral-500">{fromAddress}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-serif text-3xl tracking-wide text-neutral-950">
-                      INVOICE
-                    </p>
-                    <p className="mt-1 text-sm font-medium text-blue-700">
+                  <div className="text-left sm:text-right">
+                    <p className="font-serif text-4xl text-neutral-950">Invoice</p>
+                    <p className="mt-2 text-sm font-semibold text-blue-700">
                       #{invoiceNumber}
-                    </p>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {issuedOn || "Issue date"}
                     </p>
                   </div>
                 </header>
 
-                <div className="mt-8 grid grid-cols-2 gap-4 border-y border-neutral-200 py-5 text-sm">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-5 border-b border-neutral-200 py-6 text-sm sm:grid-cols-[1.5fr_1fr_1fr]">
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase text-neutral-400">
-                      From
-                    </p>
-                    <p className="font-medium text-neutral-900">{fromName}</p>
-                    <p className="mt-1 text-xs text-neutral-500">{fromAddress}</p>
-                  </div>
-                  <div>
-                    <p className="mb-2 text-xs font-semibold uppercase text-neutral-400">
+                    <p className="mb-2 text-[10px] font-semibold uppercase text-neutral-400">
                       Bill to
                     </p>
-                    <p className="font-medium text-neutral-900">
+                    <p className="font-semibold text-neutral-950">
                       {client || "Client name"}
                     </p>
                     <p className="mt-1 text-xs text-neutral-500">
                       {clientAddress || "Client address"}
                     </p>
+                    {clientEmail && (
+                      <p className="mt-1 text-xs text-neutral-500">{clientEmail}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="mb-2 text-[10px] font-semibold uppercase text-neutral-400">Issued</p>
+                    <p className="text-xs font-medium text-neutral-800">{issuedOn || "Issue date"}</p>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-[10px] font-semibold uppercase text-neutral-400">Due date</p>
+                    <p className="text-xs font-medium text-neutral-800">{dueOn || "Due date"}</p>
                   </div>
                 </div>
 
                 <table className="mt-6 w-full table-fixed text-left text-xs">
-                  <thead className="border-b border-neutral-300 text-[10px] uppercase text-neutral-500">
+                  <thead className="border-y border-neutral-300 text-[10px] uppercase text-neutral-500">
                     <tr>
                       <th className="w-[45%] py-2 font-semibold">Description</th>
                       <th className="w-[12%] py-2 text-center font-semibold">Qty</th>
@@ -484,7 +526,7 @@ export default function NewInvoiceModal({
                   </thead>
                   <tbody className="divide-y divide-neutral-100">
                     {items.map((item) => (
-                      <tr key={item.id}>
+                      <tr key={item.id} className="even:bg-neutral-50">
                         <td className="wrap-break-word py-3 pr-2 text-neutral-800">
                           {item.description || "Item description"}
                         </td>
@@ -502,7 +544,7 @@ export default function NewInvoiceModal({
                   </tbody>
                 </table>
 
-                <div className="ml-auto mt-5 max-w-56 space-y-2 text-xs">
+                <div className="ml-auto mt-5 max-w-56 space-y-2 border-t border-neutral-200 pt-3 text-xs">
                   <div className="flex justify-between gap-4 text-neutral-500">
                     <span>Subtotal</span>
                     <span className="tabular-nums">{formatNaira(subtotal)}</span>
@@ -511,42 +553,61 @@ export default function NewInvoiceModal({
                     <span>Tax</span>
                     <span className="tabular-nums">{formatNaira(tax)}</span>
                   </div>
-                  <div className="flex justify-between gap-4 border-t border-neutral-300 pt-2 text-sm font-semibold text-neutral-950">
-                    <span>Total</span>
-                    <span className="tabular-nums">{formatNaira(total)}</span>
+                  <div className="flex items-baseline justify-between gap-4 border-t border-neutral-300 pt-2 font-semibold text-neutral-950">
+                    <span className="text-xs">Total due</span>
+                    <span className="font-serif text-3xl tabular-nums">{formatNaira(total)}</span>
                   </div>
                 </div>
 
-                <div className="mt-7 border-t border-neutral-200 pt-5">
-                  <h3 className="text-xs font-semibold text-neutral-900">
-                    Payment Information
+                <div className="mt-7 grid gap-3 border-t border-neutral-200 pt-5 sm:grid-cols-[1fr_2fr]">
+                  <h3 className="text-[10px] font-semibold uppercase text-neutral-400">
+                    Payment information
                   </h3>
-                  <p className="mt-2 text-xs text-neutral-600">Bank: {bank}</p>
-                  <p className="mt-1 text-xs text-neutral-600">
-                    Account: {account}
-                  </p>
+                  <div className="grid gap-3 text-xs text-neutral-700 sm:grid-cols-2">
+                    <p><span className="mb-1 block text-[10px] font-semibold uppercase text-neutral-400">Bank</span>{bank || "Not provided"}</p>
+                    <p><span className="mb-1 block text-[10px] font-semibold uppercase text-neutral-400">Account</span>{account || "Not provided"}</p>
+                  </div>
                 </div>
 
-                <p className="mt-8 border-t border-neutral-100 pt-4 text-center font-serif text-sm italic text-neutral-500">
-                  Thank you for your business.
-                </p>
+                <footer className="mt-7 flex flex-col items-center justify-between gap-3 border-t border-neutral-200 pt-4 text-center sm:flex-row">
+                  <p className="text-xs text-neutral-500">
+                    Invoice Generated From Invora
+                  </p>
+                  <Image
+                    src="/logo.png"
+                    alt="Invora"
+                    width={120}
+                    height={48}
+                      className="h-8 w-auto object-contain"
+                  />
+                </footer>
               </article>
             </div>
           </div>
 
+          {saveError && (
+            <p
+              role="alert"
+              className="shrink-0 border-t border-rose-200 bg-rose-50 px-5 py-3 text-sm text-rose-700 sm:px-7"
+            >
+              {saveError}
+            </p>
+          )}
           <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-neutral-200 bg-white px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
             <button
               type="button"
               onClick={onClose}
+              disabled={saving}
               className="h-10 rounded-lg px-4 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              disabled={saving}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70"
             >
-              Create invoice
+              {saving ? "Saving invoice..." : "Create invoice"}
             </button>
           </footer>
         </form>

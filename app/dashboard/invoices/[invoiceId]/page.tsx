@@ -1,0 +1,355 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { FirebaseError } from "firebase/app";
+import { onAuthStateChanged } from "firebase/auth";
+import { ArrowLeft, Download, Send } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { firebaseAuth, firebaseSetupMessage } from "../../../../lib/firebase";
+import {
+  subscribeToUserInvoices,
+  updateUserInvoiceStatus,
+  type InvoiceRecord,
+} from "../../../../lib/invoices";
+
+const money = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
+const date = (value: string) =>
+  new Intl.DateTimeFormat("en-NG", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${value}T00:00:00`));
+
+const statusStyles: Record<InvoiceRecord["status"], string> = {
+  paid: "bg-blue-50 text-blue-700",
+  unpaid: "bg-amber-50 text-amber-800",
+  overdue: "bg-rose-50 text-rose-700",
+};
+
+export default function InvoiceDetailsPage() {
+  const { invoiceId } = useParams<{ invoiceId: string }>();
+  const [invoice, setInvoice] = useState<InvoiceRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [recipientEmail, setRecipientEmail] = useState("");
+
+  useEffect(() => {
+    setRecipientEmail(invoice?.clientEmail ?? "");
+  }, [invoice?.id, invoice?.clientEmail]);
+
+  useEffect(() => {
+    if (!firebaseAuth) {
+      setError(firebaseSetupMessage);
+      setLoading(false);
+      return;
+    }
+
+    let unsubscribeInvoices: (() => void) | undefined;
+    const unsubscribeAuth = onAuthStateChanged(firebaseAuth, (user) => {
+      unsubscribeInvoices?.();
+      setInvoice(null);
+      setLoading(true);
+      setError(null);
+
+      if (!user) {
+        setUserId(null);
+        setError("Sign in to view this invoice.");
+        setLoading(false);
+        return;
+      }
+
+      setUserId(user.uid);
+      unsubscribeInvoices = subscribeToUserInvoices(
+        user.uid,
+        (invoices) => {
+          setInvoice(
+            invoices.find((record) => record.id === invoiceId) ?? null,
+          );
+          setLoading(false);
+        },
+        (loadError) => {
+          setError(
+            loadError instanceof FirebaseError &&
+              loadError.code === "permission-denied"
+              ? "Firestore access is blocked. Publish the owner-only rules from firestore.rules in Firebase Console."
+              : "Could not load this invoice. Check your connection and try again.",
+          );
+          setLoading(false);
+        },
+      );
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeInvoices?.();
+    };
+  }, [invoiceId]);
+
+  async function togglePaidStatus() {
+    if (!invoice || !userId || invoice.status === "paid") return;
+    setSavingStatus(true);
+    setError(null);
+    try {
+      await updateUserInvoiceStatus(userId, invoice.id, "paid");
+    } catch {
+      setError("Could not update the invoice status. Please try again.");
+    } finally {
+      setSavingStatus(false);
+    }
+  }
+
+  function emailInvoice() {
+    if (!invoice || !recipientEmail.trim()) return;
+    const itemLines = invoice.items
+      .map(
+        (item) =>
+          `${item.description} x ${item.quantity}: ${money(item.quantity * item.price)}`,
+      )
+      .join("\n");
+    const body = [
+      `Hello ${invoice.client},`,
+      "",
+      `Please find invoice ${invoice.invoiceNumber} for ${money(invoice.amount)}.`,
+      "",
+      itemLines,
+      "",
+      `Due date: ${date(invoice.dueOn)}`,
+      `Payment bank: ${invoice.bank}`,
+      `Account: ${invoice.account}`,
+      "",
+      "Invoice Generated From Invora",
+    ].join("\n");
+    const subject = `Invoice ${invoice.invoiceNumber} from ${invoice.fromName}`;
+    window.location.href = `mailto:${encodeURIComponent(recipientEmail.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+
+  return (
+    <section className="mx-auto max-w-5xl space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
+        <Link
+          href="/dashboard/invoices"
+          className="inline-flex w-fit items-center gap-2 text-sm font-medium text-neutral-600 transition hover:text-blue-700"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to invoices
+        </Link>
+        {invoice && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+            >
+              <Download className="h-4 w-4" />
+              Download / Print PDF
+            </button>
+            <label className="sr-only" htmlFor="invoice-recipient-email">
+              Recipient email
+            </label>
+            <input
+              id="invoice-recipient-email"
+              type="email"
+              required
+              value={recipientEmail}
+              onChange={(event) => setRecipientEmail(event.target.value)}
+              placeholder="recipient@example.com"
+              className="h-10 w-56 rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+            <button
+              type="button"
+              onClick={emailInvoice}
+              disabled={
+                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail.trim())
+              }
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+              Send
+            </button>
+            {invoice.status !== "paid" && (
+              <button
+                type="button"
+                onClick={togglePaidStatus}
+                disabled={savingStatus}
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {savingStatus ? "Updating..." : "Mark as paid"}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {loading ? (
+        <p className="py-16 text-center text-sm text-neutral-500">
+          Loading invoice...
+        </p>
+      ) : error ? (
+        <p
+          role="alert"
+          className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700"
+        >
+          {error}
+        </p>
+      ) : !invoice ? (
+        <div className="rounded-xl border border-neutral-200 bg-white px-6 py-16 text-center">
+          <h1 className="text-lg font-semibold text-neutral-950">
+            Invoice not found
+          </h1>
+          <p className="mt-2 text-sm text-neutral-500">
+            This invoice may have been removed or may belong to another account.
+          </p>
+        </div>
+      ) : (
+        <article className="invoice-print mx-auto max-w-3xl border border-neutral-200 border-t-2 border-t-blue-700 bg-white px-6 py-8 sm:px-12 sm:py-11">
+          <header className="flex flex-col justify-between gap-6 border-b border-neutral-200 pb-7 sm:flex-row sm:items-end sm:pb-9">
+            <div>
+              <p className="mb-3 text-[10px] font-semibold uppercase text-neutral-400">
+                From
+              </p>
+              <p className="font-serif text-2xl text-neutral-950">
+                {invoice.fromName}
+              </p>
+              <p className="mt-1 text-sm text-neutral-500">
+                {invoice.fromAddress}
+              </p>
+            </div>
+            <div className="text-left sm:text-right">
+              <h1 className="font-serif text-4xl text-neutral-950">Invoice</h1>
+              <p className="mt-2 text-sm font-semibold text-blue-700">
+                {invoice.invoiceNumber}
+              </p>
+              <span
+                className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${statusStyles[invoice.status]}`}
+              >
+                {invoice.status}
+              </span>
+            </div>
+          </header>
+
+          <div className="grid grid-cols-2 gap-x-6 gap-y-5 border-b border-neutral-200 py-6 sm:grid-cols-[1.5fr_1fr_1fr] sm:py-7">
+            <div>
+              <p className="text-[10px] font-semibold uppercase text-neutral-400">
+                Bill to
+              </p>
+              <p className="mt-2 text-sm font-semibold text-neutral-950">
+                {invoice.client}
+              </p>
+              <p className="mt-1 text-sm text-neutral-500">
+                {invoice.clientAddress}
+              </p>
+              {invoice.clientEmail && (
+                <p className="mt-1 text-sm text-neutral-500">
+                  {invoice.clientEmail}
+                </p>
+              )}
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase text-neutral-400">
+                Issued
+              </p>
+              <p className="mt-2 text-sm font-medium text-neutral-800">
+                {date(invoice.issuedOn)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase text-neutral-400">
+                Due date
+              </p>
+              <p
+                className={`mt-2 text-sm font-medium ${invoice.status === "overdue" ? "text-rose-700" : "text-neutral-800"}`}
+              >
+                {date(invoice.dueOn)}
+              </p>
+            </div>
+          </div>
+
+          <table className="mt-7 w-full text-left text-sm">
+            <thead className="border-y border-neutral-300 text-[10px] uppercase text-neutral-500">
+              <tr>
+                <th className="py-3 font-medium">Description</th>
+                <th className="px-2 py-3 text-center font-medium">Qty</th>
+                <th className="px-2 py-3 text-right font-medium">Price</th>
+                <th className="py-3 text-right font-medium">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {invoice.items.map((item, index) => (
+                <tr
+                  key={`${item.description}-${index}`}
+                  className="even:bg-neutral-50"
+                >
+                  <td className="py-4 pr-3 text-neutral-800">
+                    {item.description}
+                  </td>
+                  <td className="px-2 py-4 text-center tabular-nums text-neutral-600">
+                    {item.quantity}
+                  </td>
+                  <td className="px-2 py-4 text-right tabular-nums text-neutral-600">
+                    {money(item.price)}
+                  </td>
+                  <td className="py-4 text-right font-medium tabular-nums text-neutral-900">
+                    {money(item.quantity * item.price)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="ml-auto mt-7 max-w-xs space-y-3 border-t border-neutral-200 pt-4 text-sm">
+            <div className="flex justify-between text-neutral-500">
+              <span>Subtotal</span>
+              <span>{money(invoice.subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-neutral-500">
+              <span>Tax</span>
+              <span>{money(invoice.tax)}</span>
+            </div>
+            <div className="flex items-baseline justify-between border-t border-neutral-300 pt-3 font-semibold text-neutral-950">
+              <span className="text-sm">Total due</span>
+              <span className="font-serif text-3xl">
+                {money(invoice.amount)}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-9 grid gap-4 border-t border-neutral-200 pt-6 sm:grid-cols-[1fr_2fr]">
+            <h2 className="text-[10px] font-semibold uppercase text-neutral-400">
+              Payment information
+            </h2>
+            <div className="grid gap-4 text-sm text-neutral-700 sm:grid-cols-2">
+              <p>
+                <span className="mb-1 block text-[10px] font-semibold uppercase text-neutral-400">
+                  Bank
+                </span>
+                {invoice.bank || "Not provided"}
+              </p>
+              <p>
+                <span className="mb-1 block text-[10px] font-semibold uppercase text-neutral-400">
+                  Account
+                </span>
+                {invoice.account || "Not provided"}
+              </p>
+            </div>
+          </div>
+          <footer className="mt-9 flex flex-col items-center justify-between gap-3 border-t border-neutral-200 pt-5 text-center sm:flex-row">
+            <p className="text-xs text-neutral-500">
+              Invoice Generated From Invora
+            </p>
+            <Image
+              src="/logo.png"
+              alt="Invora"
+              width={120}
+              height={48}
+              className="h-8 w-auto object-contain"
+            />
+          </footer>
+        </article>
+      )}
+    </section>
+  );
+}

@@ -5,3 +5,36 @@
 body {
   font-family: "DM Sans", sans-serif;
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .invoice-print,
+  .invoice-print * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .invoice-print,
+  .invoice-print * {
+    visibility: visible !important;
+  }
+
+  .invoice-print {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 14mm !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background-color: #fff !important;
+  }
+}

@@ -1,110 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { FirebaseError } from "firebase/app";
+import { onAuthStateChanged } from "firebase/auth";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import NewInvoiceModal from "./components/NewInvoiceModal";
+import { firebaseAuth, firebaseSetupMessage } from "../../../lib/firebase";
+import {
+  createUserInvoice,
+  subscribeToUserInvoices,
+  type InvoiceRecord,
+} from "../../../lib/invoices";
 
-/* ---------- Sample data (replace with your real invoices) ---------- */
+type Status = InvoiceRecord["status"];
+type Invoice = InvoiceRecord;
 
-type Status = "paid" | "unpaid" | "overdue";
-
-type Invoice = {
-  id: string;
-  client: string;
-  issuedOn: string;
-  dueOn: string;
-  amount: number;
-  status: Status;
-  currency?: "NGN";
-};
-
-const invoices: Invoice[] = [
-  {
-    id: "INV-1042",
-    client: "Northwind Traders",
-    issuedOn: "2026-09-01",
-    dueOn: "2026-09-15",
-    amount: 2400,
-    status: "paid",
-  },
-  {
-    id: "INV-1041",
-    client: "Bluebird Studio",
-    issuedOn: "2026-09-02",
-    dueOn: "2026-09-16",
-    amount: 1180,
-    status: "paid",
-  },
-  {
-    id: "INV-1040",
-    client: "Marlowe & Co.",
-    issuedOn: "2026-08-28",
-    dueOn: "2026-09-11",
-    amount: 3650,
-    status: "overdue",
-  },
-  {
-    id: "INV-1039",
-    client: "Ferro Logistics",
-    issuedOn: "2026-09-05",
-    dueOn: "2026-09-19",
-    amount: 940,
-    status: "unpaid",
-  },
-  {
-    id: "INV-1038",
-    client: "Hearthstone Realty",
-    issuedOn: "2026-08-20",
-    dueOn: "2026-09-03",
-    amount: 5200,
-    status: "overdue",
-  },
-  {
-    id: "INV-1037",
-    client: "Cobalt Interiors",
-    issuedOn: "2026-09-10",
-    dueOn: "2026-09-24",
-    amount: 1750,
-    status: "unpaid",
-  },
-  {
-    id: "INV-1036",
-    client: "Northwind Traders",
-    issuedOn: "2026-08-12",
-    dueOn: "2026-08-26",
-    amount: 2400,
-    status: "paid",
-  },
-  {
-    id: "INV-1035",
-    client: "Ferro Logistics",
-    issuedOn: "2026-09-14",
-    dueOn: "2026-09-28",
-    amount: 820,
-    status: "unpaid",
-  },
-  {
-    id: "INV-1034",
-    client: "Willow Grove Cafe",
-    issuedOn: "2026-08-30",
-    dueOn: "2026-09-13",
-    amount: 615,
-    status: "paid",
-  },
-  {
-    id: "INV-1033",
-    client: "Marlowe & Co.",
-    issuedOn: "2026-09-16",
-    dueOn: "2026-09-30",
-    amount: 3650,
-    status: "unpaid",
-  },
-];
-
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
+const money = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -113,10 +24,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 
 const formatDate = (iso: string) => dateFormatter.format(new Date(iso));
 
-const formatAmount = (invoice: Invoice) =>
-  invoice.currency === "NGN"
-    ? `₦${invoice.amount.toLocaleString("en-NG")}`
-    : money.format(invoice.amount);
+const formatAmount = (invoice: Invoice) => money(invoice.amount);
 
 /* ---------- Icons ---------- */
 
@@ -200,8 +108,56 @@ const filters: { key: "all" | Status; label: string }[] = [
 export default function Invoices() {
   const [filter, setFilter] = useState<(typeof filters)[number]["key"]>("all");
   const [query, setQuery] = useState("");
-  const [invoiceList, setInvoiceList] = useState(invoices);
+  const [invoiceList, setInvoiceList] = useState<Invoice[]>([]);
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!firebaseAuth) {
+      setLoadError(firebaseSetupMessage);
+      setLoading(false);
+      return;
+    }
+
+    let unsubscribeInvoices: (() => void) | undefined;
+    const unsubscribeAuth = onAuthStateChanged(firebaseAuth, (user) => {
+      unsubscribeInvoices?.();
+      setInvoiceList([]);
+      setLoading(true);
+      setLoadError(null);
+
+      if (!user) {
+        setUserId(null);
+        setLoadError("Sign in to view and create your invoices.");
+        setLoading(false);
+        return;
+      }
+
+      setUserId(user.uid);
+      unsubscribeInvoices = subscribeToUserInvoices(
+        user.uid,
+        (invoices) => {
+          setInvoiceList(invoices);
+          setLoading(false);
+        },
+        (error) => {
+          setLoadError(
+            error instanceof FirebaseError && error.code === "permission-denied"
+              ? "Firestore access is blocked. Publish the owner-only rules from firestore.rules in Firebase Console."
+              : "Could not load invoices. Check your connection and Firebase setup, then try again.",
+          );
+          setLoading(false);
+        },
+      );
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeInvoices?.();
+    };
+  }, []);
 
   const counts = useMemo(
     () => ({
@@ -219,15 +175,35 @@ export default function Invoices() {
       const matchesFilter = filter === "all" || invoice.status === filter;
       const matchesQuery =
         q.length === 0 ||
-        invoice.id.toLowerCase().includes(q) ||
+        invoice.invoiceNumber.toLowerCase().includes(q) ||
         invoice.client.toLowerCase().includes(q);
       return matchesFilter && matchesQuery;
     });
   }, [filter, invoiceList, query]);
 
-  const nextInvoiceNumber = `INV-${Math.max(
-    ...invoiceList.map((invoice) => Number(invoice.id.replace("INV-", "")) || 0),
-  ) + 1}`;
+  const nextInvoiceNumber = `INV-${String(
+    Math.max(
+      0,
+      ...invoiceList.map(
+        (invoice) => Number(invoice.invoiceNumber.match(/\d+$/)?.[0]) || 0,
+      ),
+    ) + 1,
+  ).padStart(4, "0")}`;
+
+  async function handleCreateInvoice(draft: Parameters<typeof createUserInvoice>[1]) {
+    if (!userId) throw new Error("Sign in before creating an invoice.");
+
+    try {
+      await createUserInvoice(userId, draft);
+    } catch (error) {
+      if (error instanceof FirebaseError && error.code === "permission-denied") {
+        throw new Error(
+          "Firestore blocked this save. Publish the owner-only rules from firestore.rules in Firebase Console.",
+        );
+      }
+      throw new Error("Could not save this invoice. Check your connection and try again.");
+    }
+  }
 
   return (
     <>
@@ -239,8 +215,9 @@ export default function Invoices() {
             Invoices
           </h1>
           <p className="mt-2 text-base text-neutral-500">
-            {counts.all} invoices in total, {counts.unpaid + counts.overdue}{" "}
-            waiting on payment.
+            {loading
+              ? "Loading your invoices..."
+              : `${counts.all} invoices in total, ${counts.unpaid + counts.overdue} waiting on payment.`}
           </p>
         </div>
 
@@ -301,16 +278,28 @@ export default function Invoices() {
 
       {/* List */}
       <div className="overflow-hidden rounded-3xl border border-neutral-200 bg-white">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <p className="px-6 py-16 text-center text-sm text-neutral-500">
+            Loading your invoices...
+          </p>
+        ) : loadError ? (
+          <p role="alert" className="px-6 py-16 text-center text-sm text-rose-700">
+            {loadError}
+          </p>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-50 text-neutral-400">
               <Icon className="h-6 w-6">{DocumentPaths}</Icon>
             </span>
             <p className="text-sm font-medium text-neutral-900">
-              No invoices match this search
+              {invoiceList.length === 0
+                ? "No invoices yet"
+                : "No invoices match this search"}
             </p>
             <p className="text-sm text-neutral-500">
-              Try a different name, invoice number, or filter.
+              {invoiceList.length === 0
+                ? "Create your first invoice to see it here."
+                : "Try a different name, invoice number, or filter."}
             </p>
           </div>
         ) : (
@@ -347,7 +336,7 @@ export default function Invoices() {
 
                       <div>
                         <p className="text-sm font-semibold text-neutral-950">
-                          {invoice.id}
+                          {invoice.invoiceNumber}
                         </p>
 
                         <p className="mt-0.5 text-xs text-neutral-400">
@@ -438,11 +427,8 @@ export default function Invoices() {
       open={newInvoiceOpen}
       invoiceNumber={nextInvoiceNumber}
       onClose={() => setNewInvoiceOpen(false)}
-      onCreate={(draft) => {
-        setInvoiceList((current) => [
-          { ...draft, id: nextInvoiceNumber, status: "unpaid", currency: "NGN" },
-          ...current,
-        ]);
+      onCreate={async (draft) => {
+        await handleCreateInvoice(draft);
         setNewInvoiceOpen(false);
       }}
     />

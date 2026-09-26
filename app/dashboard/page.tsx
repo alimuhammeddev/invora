@@ -1,24 +1,14 @@
+"use client";
+
 import Link from "next/link";
-import type { ReactNode } from "react";
-
-/* ---------- Sample data (replace with your real numbers) ---------- */
-
-const userName = "Alex";
-
-const paid = { count: 31, amount: 36200 };
-const unpaid = { count: 19, amount: 12480 };
-const total = {
-  count: paid.count + unpaid.count,
-  amount: paid.amount + unpaid.amount,
-};
-
-const paidPercent = Math.round((paid.amount / total.amount) * 100);
-const unpaidPercent = 100 - paidPercent;
-
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
+import { FirebaseError } from "firebase/app";
+import { onAuthStateChanged } from "firebase/auth";
+import { useEffect, useState, type ReactNode } from "react";
+import { firebaseAuth, firebaseSetupMessage } from "../../lib/firebase";
+import {
+  subscribeToUserInvoices,
+  type InvoiceRecord,
+} from "../../lib/invoices";
 
 /* ---------- Icons ---------- */
 
@@ -59,34 +49,99 @@ const CheckPaths = (
   </>
 );
 
-/* ---------- Status cards ---------- */
-
-const statuses = [
-  {
-    label: "Unpaid invoices",
-    note: "Waiting to be paid",
-    count: unpaid.count,
-    amount: unpaid.amount,
-    href: "/dashboard/invoices?status=unpaid",
-    cta: "View unpaid invoices",
-    icon: ClockPaths,
-    tile: "bg-amber-50 text-amber-600",
-  },
-  {
-    label: "Paid invoices",
-    note: "Received so far",
-    count: paid.count,
-    amount: paid.amount,
-    href: "/dashboard/invoices?status=paid",
-    cta: "View paid invoices",
-    icon: CheckPaths,
-    tile: "bg-blue-50 text-blue-600",
-  },
-];
+const money = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
 
 /* ---------- Page ---------- */
 
 export default function Dashboard() {
+  const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!firebaseAuth) {
+      setLoadError(firebaseSetupMessage);
+      setLoading(false);
+      return;
+    }
+
+    let unsubscribeInvoices: (() => void) | undefined;
+    const unsubscribeAuth = onAuthStateChanged(firebaseAuth, (user) => {
+      unsubscribeInvoices?.();
+      setInvoices([]);
+      setLoading(true);
+      setLoadError(null);
+
+      if (!user) {
+        setLoadError("Sign in to view your invoice dashboard.");
+        setLoading(false);
+        return;
+      }
+
+      unsubscribeInvoices = subscribeToUserInvoices(
+        user.uid,
+        (records) => {
+          setInvoices(records);
+          setLoading(false);
+        },
+        (error) => {
+          setLoadError(
+            error instanceof FirebaseError && error.code === "permission-denied"
+              ? "Firestore access is blocked. Publish the owner-only rules from firestore.rules in Firebase Console."
+              : "Could not load your invoices. Check your connection and Firebase setup, then try again.",
+          );
+          setLoading(false);
+        },
+      );
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeInvoices?.();
+    };
+  }, []);
+
+  const paidInvoices = invoices.filter((invoice) => invoice.status === "paid");
+  const unpaidInvoices = invoices.filter((invoice) => invoice.status !== "paid");
+  const paid = {
+    count: paidInvoices.length,
+    amount: paidInvoices.reduce((sum, invoice) => sum + invoice.amount, 0),
+  };
+  const unpaid = {
+    count: unpaidInvoices.length,
+    amount: unpaidInvoices.reduce((sum, invoice) => sum + invoice.amount, 0),
+  };
+  const total = {
+    count: invoices.length,
+    amount: paid.amount + unpaid.amount,
+  };
+  const paidPercent = total.amount
+    ? Math.round((paid.amount / total.amount) * 100)
+    : 0;
+  const unpaidPercent = 100 - paidPercent;
+  const statuses = [
+    {
+      label: "Unpaid invoices",
+      note: "Waiting to be paid",
+      count: unpaid.count,
+      amount: unpaid.amount,
+      href: "/dashboard/invoices?status=unpaid",
+      cta: "View unpaid invoices",
+      icon: ClockPaths,
+      tile: "bg-amber-50 text-amber-600",
+    },
+    {
+      label: "Paid invoices",
+      note: "Received so far",
+      count: paid.count,
+      amount: paid.amount,
+      href: "/dashboard/invoices?status=paid",
+      cta: "View paid invoices",
+      icon: CheckPaths,
+      tile: "bg-blue-50 text-blue-600",
+    },
+  ];
+
   return (
     <div className="mx-auto space-y-6 lg:space-y-8">
       {/* Header */}
@@ -96,7 +151,7 @@ export default function Dashboard() {
             Dashboard Overview
           </h1>
           <p className="mt-2 text-base text-neutral-500">
-            Here is a quick summary of your invoices.
+            {loading ? "Loading your invoices..." : "Here is a quick summary of your invoices."}
           </p>
         </div>
 
@@ -111,6 +166,40 @@ export default function Dashboard() {
         </Link>
       </div>
 
+      {loading ? (
+        <p className="py-16 text-center text-sm text-neutral-500">
+          Loading your invoice data...
+        </p>
+      ) : loadError ? (
+        <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
+          {loadError}
+        </p>
+      ) : invoices.length === 0 ? (
+        <section className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-neutral-300 bg-white px-6 py-14 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+            <Icon className="h-6 w-6">
+              <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" />
+              <path d="M14 3v5h5M9 13h6M9 17h4" />
+            </Icon>
+          </span>
+          <h2 className="mt-5 text-lg font-semibold text-neutral-950">
+            Your dashboard is ready
+          </h2>
+          <p className="mt-2 max-w-md text-sm leading-6 text-neutral-500">
+            Create your first invoice to start seeing totals, payment status, and account activity here.
+          </p>
+          <Link
+            href="/dashboard/invoices"
+            className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          >
+            <Icon className="h-4 w-4">
+              <path d="M12 5v14M5 12h14" />
+            </Icon>
+            Create your first invoice
+          </Link>
+        </section>
+      ) : (
+        <>
       {/* Overview: total, split between paid and unpaid */}
       <section
         aria-labelledby="overview-heading"
@@ -125,7 +214,7 @@ export default function Dashboard() {
               Total invoiced
             </h2>
             <p className="mt-3 text-5xl font-semibold tabular-nums tracking-tighter sm:text-7xl">
-              {money.format(total.amount)}
+              {money(total.amount)}
             </p>
             <p className="mt-3 text-base text-blue-100">
               across {total.count} invoices
@@ -148,11 +237,11 @@ export default function Dashboard() {
             className="flex h-4 gap-1"
           >
             <div
-              style={{ flex: `${paid.amount} 1 0%` }}
+              style={{ flex: `${paid.amount || 1} 1 0%` }}
               className="rounded-full bg-white"
             />
             <div
-              style={{ flex: `${unpaid.amount} 1 0%` }}
+              style={{ flex: `${unpaid.amount || 1} 1 0%` }}
               className="rounded-full bg-amber-300"
             />
           </div>
@@ -164,7 +253,7 @@ export default function Dashboard() {
                 Paid
               </dt>
               <dd className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight">
-                {money.format(paid.amount)}
+                {money(paid.amount)}
               </dd>
               <dd className="mt-0.5 text-sm tabular-nums text-blue-100">
                 {paid.count} invoices, {paidPercent}% of the total
@@ -176,7 +265,7 @@ export default function Dashboard() {
                 Unpaid
               </dt>
               <dd className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight">
-                {money.format(unpaid.amount)}
+                {money(unpaid.amount)}
               </dd>
               <dd className="mt-0.5 text-sm tabular-nums text-blue-100">
                 {unpaid.count} invoices, {unpaidPercent}% of the total
@@ -208,7 +297,7 @@ export default function Dashboard() {
             <div className="mt-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
               <div>
                 <p className="text-2xl font-semibold tabular-nums tracking-tight text-neutral-950">
-                  {money.format(s.amount)}
+                  {money(s.amount)}
                 </p>
                 <p className="mt-1 text-sm text-neutral-500">{s.note}</p>
               </div>
@@ -245,6 +334,8 @@ export default function Dashboard() {
           do not have to chase them.
         </p>
       </div>
+        </>
+      )}
     </div>
   );
 };

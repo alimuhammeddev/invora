@@ -52,7 +52,7 @@ export async function getBusinessDetails(userId: string) {
     address: typeof details.address === "string" ? details.address : "",
     logoDataUrls: Array.isArray(details.logoDataUrls)
       ? details.logoDataUrls
-          .filter((logo): logo is string => typeof logo === "string")
+          .filter((logo: unknown): logo is string => typeof logo === "string")
           .slice(0, 3)
       : [],
   };

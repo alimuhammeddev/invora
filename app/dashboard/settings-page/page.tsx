@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,6 +14,7 @@ import {
   softDeleteUserAccount,
   type BusinessDetails,
 } from "../../../lib/userAccount";
+import { compressLogo } from "../../../lib/logos";
 import { subscribeToUserInvoices } from "../../../lib/invoices";
 import {
   User,
@@ -74,7 +76,10 @@ export default function SettingsPage() {
   const [businessDetailsComplete, setBusinessDetailsComplete] = useState(false);
   const [businessDetailsLoading, setBusinessDetailsLoading] = useState(true);
   const [businessSaving, setBusinessSaving] = useState(false);
-  const [businessSaveError, setBusinessSaveError] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [businessSaveError, setBusinessSaveError] = useState<string | null>(
+    null,
+  );
   const [businessSuccessOpen, setBusinessSuccessOpen] = useState(false);
   const [invoiceCount, setInvoiceCount] = useState(0);
   const [clientCount, setClientCount] = useState(0);
@@ -191,7 +196,9 @@ export default function SettingsPage() {
   const handleSaveBusinessDetails = async () => {
     setBusinessSaveError(null);
     if (!hasRequiredBusinessDetails(businessDetails)) {
-      setBusinessSaveError("Business name and address are required to create invoices.");
+      setBusinessSaveError(
+        "Business name and address are required to create invoices.",
+      );
       return;
     }
 
@@ -211,6 +218,7 @@ export default function SettingsPage() {
         email: businessDetails.email.trim(),
         phone: businessDetails.phone.trim(),
         address: businessDetails.address.trim(),
+        logoDataUrls: businessDetails.logoDataUrls.slice(0, 3),
       });
       setBusinessDetailsComplete(true);
       setSaved(true);
@@ -462,6 +470,107 @@ export default function SettingsPage() {
                     </p>
                   </div>
 
+                  <div>
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-sm font-medium text-slate-700">
+                        Business logos (You can Upload up to 3 different logos for different purposes)
+                      </label>
+                      <span className="text-xs tabular-nums text-slate-400">
+                        {businessDetails.logoDataUrls.length}/3
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      {businessDetails.logoDataUrls.map((logo, index) => (
+                        <div
+                          key={`${logo.slice(0, 40)}-${index}`}
+                          className="relative flex h-24 w-32 items-center justify-center rounded-lg border border-slate-200 bg-white p-3"
+                        >
+                          <Image
+                            src={logo}
+                            alt={`Business logo ${index + 1}`}
+                            width={104}
+                            height={64}
+                            unoptimized
+                            className="max-h-16 max-w-full object-contain"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setBusinessDetails((details) => ({
+                                ...details,
+                                logoDataUrls: details.logoDataUrls.filter(
+                                  (_, logoIndex) => logoIndex !== index,
+                                ),
+                              }))
+                            }
+                            disabled={
+                              businessDetailsLoading ||
+                              businessSaving ||
+                              logoUploading
+                            }
+                            aria-label={`Remove business logo ${index + 1}`}
+                            className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 hover:text-rose-700 disabled:opacity-50"
+                          >
+                            <span aria-hidden="true">×</span>
+                          </button>
+                        </div>
+                      ))}
+                      {businessDetails.logoDataUrls.length < 3 && (
+                        <label className="flex h-24 w-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 bg-white text-xs font-medium text-slate-600 transition hover:border-blue-400 hover:text-blue-700">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="sr-only"
+                            disabled={
+                              businessDetailsLoading ||
+                              businessSaving ||
+                              logoUploading
+                            }
+                            onChange={async (event) => {
+                              const input = event.currentTarget;
+                              const file = input.files?.[0];
+                              input.value = "";
+                              if (!file) return;
+                              if (!file.type.startsWith("image/")) {
+                                setBusinessSaveError(
+                                  "Choose an image file for the logo.",
+                                );
+                                return;
+                              }
+
+                              setBusinessSaveError(null);
+                              setLogoUploading(true);
+                              try {
+                                const logoDataUrl = await compressLogo(file);
+                                setBusinessDetails((details) =>
+                                  details.logoDataUrls.length >= 3
+                                    ? details
+                                    : {
+                                        ...details,
+                                        logoDataUrls: [
+                                          ...details.logoDataUrls,
+                                          logoDataUrl,
+                                        ],
+                                      },
+                                );
+                              } catch (error) {
+                                setBusinessSaveError(
+                                  error instanceof Error
+                                    ? error.message
+                                    : "Could not upload this logo. Please try again.",
+                                );
+                              } finally {
+                                setLogoUploading(false);
+                              }
+                            }}
+                          />
+                          <Camera size={18} aria-hidden="true" />
+                          {logoUploading ? "Preparing..." : "Add logo"}
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="grid gap-5 sm:grid-cols-2">
                     <div>
                       <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -535,7 +644,9 @@ export default function SettingsPage() {
                 <SettingsFooter
                   onSave={handleSaveBusinessDetails}
                   saved={saved}
-                  saving={businessSaving || businessDetailsLoading}
+                  saving={
+                    businessSaving || businessDetailsLoading || logoUploading
+                  }
                 />
               </SettingsPanel>
             )}
@@ -817,8 +928,8 @@ export default function SettingsPage() {
               Business details saved
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Your business details are ready. Continue to your dashboard or
-              go to invoices to create your first invoice.
+              Your business details are ready. Continue to your dashboard or go
+              to invoices to create your first invoice.
             </p>
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button

@@ -7,6 +7,7 @@ import {
   currencyOptions,
   formatCurrencyAmount,
 } from "../../../../lib/currency";
+import { compressLogo } from "../../../../lib/logos";
 import type { NewInvoiceRecord } from "../../../../lib/invoices";
 import type { BusinessDetails } from "../../../../lib/userAccount";
 
@@ -29,39 +30,6 @@ type NewInvoiceModalProps = {
 const fieldClassName =
   "mt-1.5 h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 
-async function compressLogo(file: File) {
-  if (file.size > 8 * 1024 * 1024) {
-    throw new Error("Choose a logo smaller than 8 MB.");
-  }
-
-  const image = await createImageBitmap(file);
-  const scale = Math.min(1, 512 / Math.max(image.width, image.height));
-  const canvas = document.createElement("canvas");
-  let currentScale = scale;
-
-  try {
-    for (let attempt = 0; attempt < 7; attempt += 1) {
-      canvas.width = Math.max(1, Math.round(image.width * currentScale));
-      canvas.height = Math.max(1, Math.round(image.height * currentScale));
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error("Could not prepare the selected logo.");
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-      const quality = Math.max(0.4, 0.82 - attempt * 0.07);
-      const dataUrl = canvas.toDataURL("image/webp", quality);
-      if (dataUrl.length <= 280_000) return dataUrl;
-      currentScale *= 0.8;
-    }
-  } finally {
-    image.close();
-  }
-
-  throw new Error(
-    "This logo could not be compressed small enough. Choose a simpler image.",
-  );
-}
-
 export default function NewInvoiceModal({
   open,
   invoiceNumber,
@@ -73,6 +41,7 @@ export default function NewInvoiceModal({
   const [fromAddress, setFromAddress] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [selectedBusinessLogo, setSelectedBusinessLogo] = useState<string | null>(null);
   const [client, setClient] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientAddress, setClientAddress] = useState("");
@@ -102,6 +71,7 @@ export default function NewInvoiceModal({
     setFromAddress(businessDetails.address);
     setLogoPreview(null);
     setLogoFile(null);
+    setSelectedBusinessLogo(null);
     setClient("");
     setClientEmail("");
     setClientAddress("");
@@ -117,7 +87,7 @@ export default function NewInvoiceModal({
     setItems([
       { id: 1, description: "", quantity: 0, price: 0, priceInput: "" },
     ]);
-  }, [open, businessDetails.name, businessDetails.address]);
+  }, [open, businessDetails.name, businessDetails.address, businessDetails.logoDataUrls]);
 
   useEffect(() => {
     if (!open) return;
@@ -172,6 +142,7 @@ export default function NewInvoiceModal({
       .toLowerCase()
       .includes(currencyQuery.trim().toLowerCase()),
   );
+  const invoiceLogoPreview = logoPreview ?? selectedBusinessLogo;
 
   const updateItem = (id: number, changes: Partial<LineItem>) => {
     setItems((current) =>
@@ -199,7 +170,9 @@ export default function NewInvoiceModal({
     setSaveError(null);
 
     try {
-      const logoDataUrl = logoFile ? await compressLogo(logoFile) : undefined;
+      const logoDataUrl = logoFile
+        ? await compressLogo(logoFile)
+        : selectedBusinessLogo ?? undefined;
       await onCreate({
         invoiceNumber,
         fromName: fromName.trim(),
@@ -302,8 +275,55 @@ export default function NewInvoiceModal({
                   />
                 </label>
                 <div className="text-xs font-medium text-neutral-600 sm:col-span-2 lg:col-span-1 xl:col-span-2">
-                  <span>Brand Logo (optional)</span>
-                  <div className="mt-1.5 flex min-h-10 flex-wrap items-center gap-2">
+                  <span>Brand logo (optional)</span>
+                  {businessDetails.logoDataUrls.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {businessDetails.logoDataUrls.map((logo, index) => (
+                        <button
+                          key={`${logo.slice(0, 40)}-${index}`}
+                          type="button"
+                          aria-label={`Use business logo ${index + 1}`}
+                          aria-pressed={selectedBusinessLogo === logo}
+                          onClick={() => {
+                            setSelectedBusinessLogo(logo);
+                            setLogoPreview(null);
+                            setLogoFile(null);
+                          }}
+                          className={`flex h-16 w-20 items-center justify-center rounded-lg border bg-white p-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+                            selectedBusinessLogo === logo
+                              ? "border-blue-600 ring-2 ring-blue-100"
+                              : "border-neutral-200 hover:border-blue-300"
+                          }`}
+                        >
+                          <Image
+                            src={logo}
+                            alt=""
+                            width={64}
+                            height={48}
+                            unoptimized
+                            className="max-h-12 max-w-full object-contain"
+                          />
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        aria-pressed={!selectedBusinessLogo && !logoFile}
+                        onClick={() => {
+                          setSelectedBusinessLogo(null);
+                          setLogoPreview(null);
+                          setLogoFile(null);
+                        }}
+                        className={`h-16 rounded-lg border px-3 text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+                          !selectedBusinessLogo && !logoFile
+                            ? "border-blue-600 bg-blue-50 text-blue-700"
+                            : "border-neutral-200 bg-white text-neutral-600 hover:border-blue-300"
+                        }`}
+                      >
+                        No logo
+                      </button>
+                    </div>
+                  )}
+                  <div className="mt-2 flex min-h-10 flex-wrap items-center gap-2">
                     <label className="inline-flex h-10 cursor-pointer items-center rounded-lg border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-700 transition hover:border-blue-300 hover:text-blue-700 focus-within:ring-2 focus-within:ring-blue-100">
                       <input
                         type="file"
@@ -319,6 +339,7 @@ export default function NewInvoiceModal({
                             } else {
                               setLogoFile(file);
                               setLogoPreview(URL.createObjectURL(file));
+                              setSelectedBusinessLogo(null);
                               setSaveError(null);
                             }
                           }
@@ -327,6 +348,9 @@ export default function NewInvoiceModal({
                       />
                       {logoPreview ? "Change logo" : "Choose logo"}
                     </label>
+                    {selectedBusinessLogo && (
+                      <span className="text-xs text-blue-700">Saved logo selected</span>
+                    )}
                     {logoPreview && (
                       <button
                         type="button"
@@ -632,9 +656,9 @@ export default function NewInvoiceModal({
                 <div className="px-5 py-6 sm:px-8 sm:py-8">
                   <header className="flex items-start justify-between gap-5 border-b border-neutral-200 pb-5">
                     <div className="min-h-12">
-                      {logoPreview && (
+                      {invoiceLogoPreview && (
                         <Image
-                          src={logoPreview}
+                          src={invoiceLogoPreview}
                           alt={`${fromName || "Business"} logo`}
                           width={144}
                           height={64}

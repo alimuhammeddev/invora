@@ -65,6 +65,13 @@ const DocumentIcon: IconComponent = ({ className }) => (
   </Icon>
 );
 
+const AnalyticsIcon: IconComponent = ({ className }) => (
+  <Icon className={className}>
+    <path d="M3 3v18h18" />
+    <path d="M8 16v-4M13 16V7M18 16v-7" />
+  </Icon>
+);
+
 const SlidersIcon: IconComponent = ({ className }) => (
   <Icon className={className}>
     <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
@@ -122,6 +129,12 @@ const navItems: {
 }[] = [
   { label: "Dashboard", href: "/dashboard", icon: GridIcon, exact: true },
   { label: "Invoices", href: "/dashboard/invoices", icon: DocumentIcon },
+  {
+    label: "Analytics",
+    href: "/dashboard/analytics",
+    icon: AnalyticsIcon,
+    exact: true,
+  },
   { label: "Settings", href: "/dashboard/settings-page", icon: SlidersIcon },
 ];
 
@@ -139,13 +152,7 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase();
 
-function Avatar({
-  size = "h-9 w-9",
-  name,
-}: {
-  size?: string;
-  name: string;
-}) {
+function Avatar({ size = "h-9 w-9", name }: { size?: string; name: string }) {
   return (
     <span
       aria-hidden="true"
@@ -177,7 +184,7 @@ function SidebarContent({
           href="/dashboard"
           className="inline-flex items-center gap-2.5 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         >
-          <Image src="/logo.png" alt="Logo" width={80} height={80}/>
+          <Image src="/logo.png" alt="Logo" width={80} height={80} />
         </Link>
 
         {onClose && (
@@ -261,11 +268,7 @@ function SidebarContent({
 
 /* ---------- Layout ---------- */
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const showToast = useToast();
@@ -531,4 +534,4 @@ export default function DashboardLayout({
       </div>
     </div>
   );
-};
+}

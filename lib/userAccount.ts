@@ -13,6 +13,7 @@ export type BusinessDetails = {
   email: string;
   phone: string;
   address: string;
+  logoDataUrls: string[];
 };
 
 export const emptyBusinessDetails: BusinessDetails = {
@@ -20,6 +21,7 @@ export const emptyBusinessDetails: BusinessDetails = {
   email: "",
   phone: "",
   address: "",
+  logoDataUrls: [],
 };
 
 export function hasRequiredBusinessDetails(
@@ -48,6 +50,11 @@ export async function getBusinessDetails(userId: string) {
     email: typeof details.email === "string" ? details.email : "",
     phone: typeof details.phone === "string" ? details.phone : "",
     address: typeof details.address === "string" ? details.address : "",
+    logoDataUrls: Array.isArray(details.logoDataUrls)
+      ? details.logoDataUrls
+          .filter((logo): logo is string => typeof logo === "string")
+          .slice(0, 3)
+      : [],
   };
 }
 
@@ -62,6 +69,7 @@ export async function saveBusinessDetails(
     email: details.email.trim(),
     phone: details.phone.trim(),
     address: details.address.trim(),
+    logoDataUrls: details.logoDataUrls.slice(0, 3),
   };
 
   await setDoc(

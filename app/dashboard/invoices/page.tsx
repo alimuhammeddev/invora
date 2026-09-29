@@ -8,6 +8,7 @@ import NewInvoiceModal from "./components/NewInvoiceModal";
 import { useToast } from "../../components/ToastProvider";
 import { formatCurrencyAmount } from "../../../lib/currency";
 import { firebaseAuth, firebaseSetupMessage } from "../../../lib/firebase";
+import { useMinimumLoadingTime } from "../../../lib/useMinimumLoadingTime";
 import {
   createUserInvoice,
   subscribeToUserInvoices,
@@ -130,6 +131,85 @@ const filters: { key: "all" | Status; label: string }[] = [
   { key: "paid", label: "Paid" },
 ];
 
+function InvoiceListSkeleton() {
+  return (
+    <section
+      aria-label="Loading invoices"
+      aria-busy="true"
+      className="mx-auto space-y-6"
+    >
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-3">
+          <div className="h-9 w-40 animate-pulse rounded bg-neutral-200" />
+          <div className="h-5 w-80 max-w-full animate-pulse rounded bg-neutral-100" />
+        </div>
+        <div className="h-11 w-36 animate-pulse rounded-xl bg-neutral-200" />
+      </div>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-1.5">
+          {[0, 1, 2, 3].map((item) => (
+            <div
+              key={item}
+              className="h-9 w-20 animate-pulse rounded-full bg-neutral-100"
+            />
+          ))}
+        </div>
+        <div className="h-10 w-full animate-pulse rounded-xl bg-neutral-100 sm:w-64" />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2].map((item) => (
+          <div
+            key={item}
+            className="space-y-6 rounded-3xl border border-neutral-200 bg-white p-5"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 animate-pulse rounded-2xl bg-blue-50" />
+                <div className="space-y-2">
+                  <div className="h-4 w-28 animate-pulse rounded bg-neutral-200" />
+                  <div className="h-3 w-16 animate-pulse rounded bg-neutral-100" />
+                </div>
+              </div>
+              <div className="h-6 w-16 animate-pulse rounded-full bg-amber-50" />
+            </div>
+
+            <div className="space-y-2">
+              <div className="h-3 w-16 animate-pulse rounded bg-neutral-100" />
+              <div className="h-5 w-40 max-w-full animate-pulse rounded bg-neutral-200" />
+            </div>
+
+            <div className="flex items-end justify-between gap-4 rounded-2xl bg-neutral-50 p-4">
+              <div className="space-y-2">
+                <div className="h-3 w-20 animate-pulse rounded bg-neutral-200" />
+                <div className="h-7 w-32 animate-pulse rounded bg-neutral-200" />
+              </div>
+              <div className="h-9 w-9 animate-pulse rounded-full bg-white ring-1 ring-neutral-200" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
+              <div className="space-y-2">
+                <div className="h-3 w-12 animate-pulse rounded bg-neutral-100" />
+                <div className="h-4 w-20 animate-pulse rounded bg-neutral-200" />
+              </div>
+              <div className="space-y-2 border-l border-neutral-100 pl-4">
+                <div className="h-3 w-16 animate-pulse rounded bg-neutral-100" />
+                <div className="h-4 w-20 animate-pulse rounded bg-neutral-200" />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between border-t border-neutral-100 pt-4">
+              <div className="h-3 w-20 animate-pulse rounded bg-neutral-100" />
+              <div className="h-3 w-12 animate-pulse rounded bg-blue-50" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ---------- Page ---------- */
 
 export default function Invoices() {
@@ -145,6 +225,7 @@ export default function Invoices() {
   const [businessDetailsLoading, setBusinessDetailsLoading] = useState(true);
   const [businessPromptOpen, setBusinessPromptOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useMinimumLoadingTime(loading);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -276,6 +357,8 @@ export default function Invoices() {
     setNewInvoiceOpen(true);
   }
 
+  if (showSkeleton) return <InvoiceListSkeleton />;
+
   return (
     <>
       <section className="mx-auto space-y-6">
@@ -286,9 +369,7 @@ export default function Invoices() {
               Invoices
             </h1>
             <p className="mt-2 text-base text-neutral-500">
-              {loading
-                ? "Loading your invoices..."
-                : `${counts.all} invoices in total, ${counts.unpaid + counts.overdue} waiting on payment.`}
+              {`${counts.all} invoices in total, ${counts.unpaid + counts.overdue} waiting on payment.`}
             </p>
           </div>
 
@@ -352,11 +433,7 @@ export default function Invoices() {
 
         {/* List */}
         <div className="overflow-hidden rounded-3xl">
-          {loading ? (
-            <p className="px-6 py-16 text-center text-sm text-neutral-500">
-              Loading your invoices...
-            </p>
-          ) : loadError ? (
+          {loadError ? (
             <p
               role="alert"
               className="px-6 py-16 text-center text-sm text-rose-700"

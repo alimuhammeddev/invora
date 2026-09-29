@@ -6,6 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useContext, useEffect, useState, type ReactNode } from "react";
 import { formatCurrencyAmount } from "../../lib/currency";
 import { firebaseAuth, firebaseSetupMessage } from "../../lib/firebase";
+import { useMinimumLoadingTime } from "../../lib/useMinimumLoadingTime";
 import { DashboardNameContext } from "./layout";
 import {
   subscribeToUserInvoices,
@@ -71,6 +72,87 @@ function summarizeAmounts(invoices: InvoiceRecord[], currencies = invoices) {
   return [...totals].map(([currency, amount]) => ({ currency, amount }));
 }
 
+function DashboardSkeleton() {
+  return (
+    <div
+      aria-label="Loading dashboard"
+      aria-busy="true"
+      className="mx-auto space-y-6 lg:space-y-8"
+    >
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="w-full space-y-3">
+          <div className="h-5 w-36 animate-pulse rounded bg-neutral-200" />
+          <div className="h-9 w-64 max-w-full animate-pulse rounded bg-neutral-200" />
+          <div className="h-5 w-80 max-w-full animate-pulse rounded bg-neutral-100" />
+        </div>
+        <div className="h-11 w-36 animate-pulse rounded-xl bg-neutral-200" />
+      </div>
+
+      <section className="rounded-4xl bg-blue-600 p-7 sm:p-10">
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-4">
+            <div className="h-4 w-28 animate-pulse rounded bg-blue-400/70" />
+            <div className="h-10 w-48 animate-pulse rounded bg-white/25 sm:h-14" />
+            <div className="h-5 w-36 animate-pulse rounded bg-blue-400/70" />
+          </div>
+          <div className="space-y-2 rounded-2xl bg-white/10 px-5 py-4 sm:w-32">
+            <div className="h-8 w-20 animate-pulse rounded bg-white/25" />
+            <div className="h-4 w-24 animate-pulse rounded bg-blue-400/70" />
+          </div>
+        </div>
+
+        <div className="mt-10">
+          <div className="flex h-4 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full w-1/2 animate-pulse rounded-l-full bg-white/70" />
+            <div className="h-full w-1/2 animate-pulse rounded-r-full bg-amber-300/80" />
+          </div>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2">
+            {[0, 1].map((item) => (
+              <div key={item} className="space-y-3">
+                <div className="h-5 w-24 animate-pulse rounded bg-white/20" />
+                <div className="h-7 w-40 animate-pulse rounded bg-white/30" />
+                <div className="h-4 w-48 max-w-full animate-pulse rounded bg-blue-400/70" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:gap-6">
+        {[0, 1].map((item) => (
+          <div
+            key={item}
+            className="space-y-7 rounded-3xl border border-neutral-200 bg-white p-7"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 animate-pulse rounded-xl bg-neutral-100" />
+              <div className="h-5 w-32 animate-pulse rounded bg-neutral-100" />
+            </div>
+            <div className="flex items-end justify-between gap-6">
+              <div className="space-y-2">
+                <div className="h-6 w-28 animate-pulse rounded bg-neutral-200" />
+                <div className="h-4 w-32 animate-pulse rounded bg-neutral-100" />
+              </div>
+              <div className="h-8 w-24 animate-pulse rounded bg-neutral-200" />
+            </div>
+            <div className="h-10 border-t border-neutral-100 pt-5">
+              <div className="h-4 w-36 animate-pulse rounded bg-neutral-100" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-start gap-3.5 rounded-2xl bg-neutral-100 p-5">
+        <div className="h-8 w-8 shrink-0 animate-pulse rounded-lg bg-white" />
+        <div className="w-full space-y-2 pt-1">
+          <div className="h-4 w-full max-w-xl animate-pulse rounded bg-neutral-200" />
+          <div className="h-4 w-full max-w-2xl animate-pulse rounded bg-neutral-200" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Page ---------- */
 
 export default function Dashboard() {
@@ -78,6 +160,7 @@ export default function Dashboard() {
   const [greeting, setGreeting] = useState("");
   const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useMinimumLoadingTime(loading);
   const [loadError, setLoadError] = useState<string | null>(null);
   const firstName =
     dashboardName === "Account" ? "" : dashboardName.split(" ")[0];
@@ -176,6 +259,8 @@ export default function Dashboard() {
     },
   ];
 
+  if (showSkeleton) return <DashboardSkeleton />;
+
   return (
     <div className="mx-auto space-y-6 lg:space-y-8">
       {/* Header */}
@@ -197,13 +282,11 @@ export default function Dashboard() {
             Dashboard Overview
           </h1>
           <p className="mt-2 text-base text-neutral-500">
-            {loading
-              ? "Loading your invoices..."
-              : "Here is a quick summary of your invoices."}
+            Here is a quick summary of your invoices.
           </p>
         </div>
 
-        {(loading || invoices.length > 0) && (
+        {invoices.length > 0 && (
           <Link
             href="/dashboard/invoices"
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
@@ -216,11 +299,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {loading ? (
-        <p className="py-16 text-center text-sm text-neutral-500">
-          Loading your invoice data...
-        </p>
-      ) : loadError ? (
+      {loadError ? (
         <p
           role="alert"
           className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700"
@@ -286,16 +365,20 @@ export default function Dashboard() {
               <div
                 role="img"
                 aria-label={`${paidPercent}% of invoices are paid and ${unpaidPercent}% are unpaid`}
-                className="flex h-4 gap-1"
+                className="flex h-4 overflow-hidden rounded-full"
               >
-                <div
-                  style={{ flex: `${paid.count || 1} 1 0%` }}
-                  className="rounded-full bg-white"
-                />
-                <div
-                  style={{ flex: `${unpaid.count || 1} 1 0%` }}
-                  className="rounded-full bg-amber-300"
-                />
+                {paid.count > 0 && (
+                  <div
+                    style={{ flex: `${paid.count} 1 0%` }}
+                    className={`bg-white ${unpaid.count > 0 ? "rounded-l-full" : "rounded-full"}`}
+                  />
+                )}
+                {unpaid.count > 0 && (
+                  <div
+                    style={{ flex: `${unpaid.count} 1 0%` }}
+                    className={`bg-amber-300 ${paid.count > 0 ? "rounded-r-full" : "rounded-full"}`}
+                  />
+                )}
               </div>
 
               <dl className="mt-6 grid gap-6 sm:grid-cols-2">

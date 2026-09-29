@@ -48,6 +48,41 @@ function formatNotificationDate(value?: ActivityNotification["createdAt"]) {
   }).format(value.toDate());
 }
 
+function NotificationsSkeleton() {
+  return (
+    <section
+      aria-label="Loading notifications"
+      aria-busy="true"
+      className="mx-auto space-y-6"
+    >
+      <header className="flex flex-col gap-3 border-b border-neutral-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <div className="h-3 w-16 animate-pulse rounded bg-blue-100" />
+          <div className="h-9 w-48 animate-pulse rounded bg-neutral-200" />
+          <div className="h-4 w-64 max-w-full animate-pulse rounded bg-neutral-100" />
+        </div>
+        <div className="h-7 w-20 animate-pulse rounded-full bg-blue-50" />
+      </header>
+
+      <ul className="divide-y divide-neutral-200 border-y border-neutral-200 bg-white">
+        {[0, 1, 2, 3].map((item) => (
+          <li key={item} className="flex items-start gap-4 px-4 py-5 sm:px-6">
+            <div className="h-10 w-10 shrink-0 animate-pulse rounded-lg bg-neutral-100" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="h-4 w-28 animate-pulse rounded bg-neutral-200" />
+                <div className="h-3 w-24 animate-pulse rounded bg-neutral-100" />
+              </div>
+              <div className="h-4 w-full max-w-xl animate-pulse rounded bg-neutral-100" />
+            </div>
+            <div className="mt-1 h-4 w-4 shrink-0 animate-pulse rounded bg-neutral-100" />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<ActivityNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,6 +152,8 @@ export default function NotificationsPage() {
     (notification) => !notification.read,
   ).length;
 
+  if (loading) return <NotificationsSkeleton />;
+
   return (
     <section className="mx-auto space-y-6">
       <header className="flex flex-col gap-3 border-b border-neutral-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -131,7 +168,7 @@ export default function NotificationsPage() {
             Invoice activity and payment updates.
           </p>
         </div>
-        {!loading && !error && unreadCount > 0 && (
+        {!error && unreadCount > 0 && (
           <span className="inline-flex w-fit items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
             {unreadCount} new
@@ -139,11 +176,7 @@ export default function NotificationsPage() {
         )}
       </header>
 
-      {loading ? (
-        <p className="py-16 text-center text-sm text-neutral-500">
-          Loading notifications...
-        </p>
-      ) : error ? (
+      {error ? (
         <p
           role="alert"
           className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"

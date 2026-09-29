@@ -5,6 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { formatCurrencyAmount } from "../../../lib/currency";
 import { firebaseAuth, firebaseSetupMessage } from "../../../lib/firebase";
+import { useMinimumLoadingTime } from "../../../lib/useMinimumLoadingTime";
 import {
   subscribeToUserInvoices,
   type InvoiceRecord,
@@ -34,9 +35,104 @@ function summarizeAmounts(invoices: InvoiceRecord[], currencies = invoices) {
   return [...totals].map(([currency, amount]) => ({ currency, amount }));
 }
 
+function AnalyticsSkeleton() {
+  return (
+    <section
+      aria-label="Loading analytics"
+      aria-busy="true"
+      className="mx-auto space-y-7"
+    >
+      <header className="space-y-3">
+        <div className="h-9 w-44 animate-pulse rounded bg-neutral-200" />
+        <div className="h-5 w-80 max-w-full animate-pulse rounded bg-neutral-100" />
+      </header>
+
+      <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <article className="rounded-3xl bg-blue-600 p-6 sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-3">
+              <div className="h-3 w-28 animate-pulse rounded bg-blue-400/70" />
+              <div className="h-6 w-36 animate-pulse rounded bg-white/25" />
+              <div className="h-4 w-32 animate-pulse rounded bg-blue-400/70" />
+            </div>
+            <div className="h-10 w-36 animate-pulse rounded-lg bg-white/15" />
+          </div>
+          <div className="mt-6 h-9 w-44 animate-pulse rounded bg-white/25" />
+          <div className="mt-3 h-4 w-28 animate-pulse rounded bg-blue-400/70" />
+          <div className="mt-7 grid h-16 grid-cols-7 items-end gap-2 border-b border-white/15 pb-1">
+            {[0, 1, 2, 3, 4, 5, 6].map((item) => (
+              <div key={item} className="flex h-full flex-col justify-end gap-2">
+                <div
+                  className="w-full animate-pulse rounded-t-sm bg-white/70"
+                  style={{ height: `${24 + ((item * 19) % 60)}%` }}
+                />
+                <div className="mx-auto h-3 w-5 animate-pulse rounded bg-blue-400/70" />
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="overflow-hidden rounded-3xl border border-blue-100 bg-white">
+          <div className="h-1.5 bg-blue-600" />
+          <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 shrink-0 animate-pulse rounded-xl bg-blue-50" />
+              <div className="space-y-2">
+                <div className="h-3 w-20 animate-pulse rounded bg-blue-100" />
+                <div className="h-5 w-36 animate-pulse rounded bg-neutral-200" />
+                <div className="h-3 w-28 animate-pulse rounded bg-neutral-100" />
+              </div>
+            </div>
+            <div className="h-10 w-40 animate-pulse rounded-lg bg-neutral-100" />
+          </div>
+          <div className="border-t border-blue-100 bg-blue-50/50 px-6 py-6 sm:px-8">
+            <div className="h-4 w-40 animate-pulse rounded bg-neutral-200" />
+            <div className="mt-3 h-9 w-44 animate-pulse rounded bg-blue-100" />
+            <div className="mt-5 flex items-center gap-2 border-t border-blue-100 pt-4">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-blue-300" />
+              <div className="h-4 w-28 animate-pulse rounded bg-neutral-200" />
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="rounded-2xl border border-neutral-200 bg-white p-6 sm:p-7">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-2">
+            <div className="h-5 w-52 animate-pulse rounded bg-neutral-200" />
+            <div className="h-4 w-44 animate-pulse rounded bg-neutral-100" />
+          </div>
+          <div className="h-4 w-28 animate-pulse rounded bg-neutral-100" />
+        </div>
+        <div className="mt-6 grid h-44 grid-cols-5 items-end gap-3 border-b border-neutral-200 px-1 sm:gap-5">
+          {[0, 1, 2, 3, 4].map((item) => (
+            <div
+              key={item}
+              className="flex h-full min-w-0 flex-col items-center justify-end gap-2"
+            >
+              <div className="h-3 w-6 animate-pulse rounded bg-neutral-100" />
+              <div className="flex h-full w-full items-end">
+                <div
+                  className="w-full animate-pulse rounded-t-lg bg-blue-100"
+                  style={{ height: `${28 + ((item * 17) % 55)}%` }}
+                />
+              </div>
+              <div className="h-3 w-12 animate-pulse rounded bg-neutral-100" />
+              <div className="h-2.5 w-16 animate-pulse rounded bg-neutral-50" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="h-4 w-full max-w-2xl animate-pulse rounded bg-neutral-100" />
+    </section>
+  );
+}
+
 export default function AnalyticsPage() {
   const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useMinimumLoadingTime(loading);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [weeklyPeriod, setWeeklyPeriod] = useState<WeeklyPeriod>("current");
   const [revenueMonth, setRevenueMonth] = useState(() =>
@@ -177,6 +273,8 @@ export default function AnalyticsPage() {
     year: "numeric",
   });
 
+  if (showSkeleton) return <AnalyticsSkeleton />;
+
   return (
     <section className="mx-auto space-y-7">
       <header>
@@ -188,11 +286,7 @@ export default function AnalyticsPage() {
         </p>
       </header>
 
-      {loading ? (
-        <p className="py-16 text-center text-sm text-neutral-500">
-          Loading your analytics...
-        </p>
-      ) : loadError ? (
+      {loadError ? (
         <p
           role="alert"
           className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700"

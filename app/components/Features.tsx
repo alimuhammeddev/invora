@@ -104,29 +104,29 @@ export default function Features() {
             >
               <span
                 aria-hidden="true"
-                className="absolute inset-0 origin-bottom scale-y-0 bg-blue-600 transition-transform duration-500 ease-out group-hover:scale-y-100 motion-reduce:transition-none"
+                className="absolute inset-0 origin-bottom scale-y-0 bg-blue-600 transition-transform duration-500 ease-out lg:group-hover:scale-y-100 motion-reduce:transition-none"
               />
 
               <div className="relative grid grid-cols-2 items-center gap-x-10 gap-y-5 px-2 py-9 sm:px-8 lg:grid-cols-[7rem_1.1fr_1fr_auto] lg:py-12">
                 <span
                   aria-hidden="true"
-                  className="order-1 text-3xl font-semibold leading-none tracking-tighter tabular-nums text-slate-200 transition-colors duration-500 group-hover:text-blue-300 motion-reduce:transition-none md:text-5xl"
+                  className="order-1 text-3xl font-semibold leading-none tracking-tighter tabular-nums text-slate-200 transition-colors duration-500 lg:group-hover:text-blue-300 motion-reduce:transition-none md:text-5xl"
                 >
                   {String(i + 1).padStart(2, "0")}
                 </span>
 
                 <div
                   aria-hidden="true"
-                  className="order-2 flex h-14 w-14 items-center justify-center justify-self-end rounded-full bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-100 transition-colors duration-500 group-hover:bg-white/15 group-hover:text-white group-hover:ring-white/30 motion-reduce:transition-none lg:order-4"
+                  className="order-2 flex h-14 w-14 items-center justify-center justify-self-end rounded-full bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-100 transition-colors duration-500 lg:group-hover:bg-white/15 lg:group-hover:text-white lg:group-hover:ring-white/30 motion-reduce:transition-none lg:order-4"
                 >
                   {feature.icon}
                 </div>
 
-                <h3 className="order-3 col-span-2 text-xl font-semibold leading-tight tracking-tight text-slate-950 transition-colors duration-500 group-hover:text-white motion-reduce:transition-none lg:order-2 lg:col-span-1 lg:text-2xl">
+                <h3 className="order-3 col-span-2 text-xl font-semibold leading-tight tracking-tight text-slate-950 transition-colors duration-500 lg:group-hover:text-white motion-reduce:transition-none lg:order-2 lg:col-span-1 lg:text-2xl">
                   {feature.title}
                 </h3>
 
-                <p className="order-4 col-span-2 max-w-md text-base leading-7 text-slate-600 transition-colors duration-500 group-hover:text-blue-100 motion-reduce:transition-none lg:order-3 lg:col-span-1">
+                <p className="order-4 col-span-2 max-w-md text-base leading-7 text-slate-600 transition-colors duration-500 lg:group-hover:text-blue-100 motion-reduce:transition-none lg:order-3 lg:col-span-1">
                   {feature.description}
                 </p>
               </div>

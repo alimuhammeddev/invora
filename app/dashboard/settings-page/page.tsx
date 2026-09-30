@@ -66,11 +66,27 @@ const settingsSections = [
 const businessInputClassName =
   "mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10";
 
+function splitName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  return {
+    first: parts[0] ?? "",
+    last: parts.slice(1).join(" "),
+  };
+}
+
+function getInitials(first: string, last: string, fallback: string) {
+  const letters =
+    first && last ? first[0] + last[0] : (first || fallback).slice(0, 2);
+  return letters.toUpperCase() || "?";
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState("profile");
   const [saved, setSaved] = useState(false);
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [businessDetails, setBusinessDetails] =
     useState<BusinessDetails>(emptyBusinessDetails);
   const [businessDetailsComplete, setBusinessDetailsComplete] = useState(false);
@@ -99,6 +115,11 @@ export default function SettingsPage() {
     const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
       currentUserId = user?.uid ?? null;
       setEmail(user?.email ?? "");
+
+      const { first, last } = splitName(user?.displayName ?? "");
+      setFirstName(first);
+      setLastName(last);
+
       setBusinessDetailsComplete(false);
       if (!user) {
         setBusinessDetails(emptyBusinessDetails);
@@ -346,8 +367,8 @@ export default function SettingsPage() {
                   {/* Avatar */}
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-lg font-semibold text-blue-600">
-                        MA
+                      <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-lg font-semibold text-blue-600">
+                        {getInitials(firstName, lastName, email)}
                       </div>
 
                       <button className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-white shadow-sm transition hover:bg-blue-700">
@@ -373,7 +394,8 @@ export default function SettingsPage() {
                       </label>
                       <input
                         type="text"
-                        defaultValue="Muhammed"
+                        value={firstName}
+                        onChange={(event) => setFirstName(event.target.value)}
                         className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                       />
                     </div>
@@ -384,7 +406,8 @@ export default function SettingsPage() {
                       </label>
                       <input
                         type="text"
-                        defaultValue="Ali"
+                        value={lastName}
+                        onChange={(event) => setLastName(event.target.value)}
                         className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                       />
                     </div>
@@ -1120,4 +1143,4 @@ function UsageCard({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-lg font-semibold text-slate-900">{value}</p>
     </div>
   );
-}
+};

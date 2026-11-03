@@ -37,8 +37,26 @@ export default function NewInvoiceModal({
   onClose,
   onCreate,
 }: NewInvoiceModalProps) {
-  const [fromName, setFromName] = useState("");
-  const [fromAddress, setFromAddress] = useState("");
+  if (!open) return null;
+
+  return (
+    <NewInvoiceModalForm
+      invoiceNumber={invoiceNumber}
+      businessDetails={businessDetails}
+      onClose={onClose}
+      onCreate={onCreate}
+    />
+  );
+}
+
+function NewInvoiceModalForm({
+  invoiceNumber,
+  businessDetails,
+  onClose,
+  onCreate,
+}: Omit<NewInvoiceModalProps, "open">) {
+  const [fromName, setFromName] = useState(businessDetails.name);
+  const [fromAddress, setFromAddress] = useState(businessDetails.address);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [selectedBusinessLogo, setSelectedBusinessLogo] = useState<string | null>(null);
@@ -66,32 +84,6 @@ export default function NewInvoiceModal({
   }, [logoPreview]);
 
   useEffect(() => {
-    if (!open) return;
-    setFromName(businessDetails.name);
-    setFromAddress(businessDetails.address);
-    setLogoPreview(null);
-    setLogoFile(null);
-    setSelectedBusinessLogo(null);
-    setClient("");
-    setClientEmail("");
-    setClientAddress("");
-    setIssuedOn("");
-    setDueOn("");
-    setBank("");
-    setAccount("");
-    setCurrency("NGN");
-    setCurrencyQuery("");
-    setCurrencyOpen(false);
-    setTax("");
-    setSaveError(null);
-    setItems([
-      { id: 1, description: "", quantity: 0, price: 0, priceInput: "" },
-    ]);
-  }, [open, businessDetails.name, businessDetails.address, businessDetails.logoDataUrls]);
-
-  useEffect(() => {
-    if (!open) return;
-
     const previousOverflow = document.body.style.overflow;
     const previousFocus = document.activeElement as HTMLElement | null;
     const focusableSelector =
@@ -125,9 +117,7 @@ export default function NewInvoiceModal({
       document.removeEventListener("keydown", handleKeyDown);
       if (previousFocus?.isConnected) previousFocus.focus();
     };
-  }, [onClose, open]);
-
-  if (!open) return null;
+  }, [onClose]);
 
   const subtotal = items.reduce(
     (total, item) => total + item.quantity * item.price,

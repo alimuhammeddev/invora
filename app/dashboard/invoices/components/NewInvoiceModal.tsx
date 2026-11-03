@@ -421,7 +421,7 @@ export default function NewInvoiceModal({
                         event.relatedTarget as Node | null,
                       )
                     ) {
-                      setCurrencyOpen(false);
+                      window.setTimeout(() => setCurrencyOpen(false), 300);
                     }
                   }}
                 >
